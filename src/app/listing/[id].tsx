@@ -25,10 +25,10 @@ import {
   type SolarIcon,
 } from '@/components/icons';
 import { Button, FooterBar, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { formatPrice, getListing, placeOf, type Listing } from '@/data/listings';
 import { isNightly, quoteFor, useBooking } from '@/hooks/use-booking';
 import { formatRange } from '@/lib/dates';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 const AMENITIES: { Icon: SolarIcon; label: string }[] = [
   { Icon: WiFiIcon, label: 'Fast wifi – 120 Mbps' },
@@ -56,6 +56,7 @@ function featureIcon(label: string) {
 }
 
 export default function ListingScreen() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const listing = getListing(id);
 
@@ -72,6 +73,8 @@ export default function ListingScreen() {
 }
 
 function ListingDetails({ listing }: { listing: Listing }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -95,8 +98,14 @@ function ListingDetails({ listing }: { listing: Listing }) {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(e) => setPhotoIndex(Math.round(e.nativeEvent.contentOffset.x / width))}>
-            {listing.images.map((uri) => (
-              <Image key={uri} source={uri} style={{ width, height: photoHeight }} contentFit="cover" transition={200} />
+            {listing.images.map((uri, i) => (
+              <Pressable
+                key={uri}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={`Open photo ${i + 1} of ${listing.images.length}`}
+                onPress={() => router.push({ pathname: '/gallery', params: { id: listing.id, index: String(i) } })}>
+                <Image source={uri} style={{ width, height: photoHeight }} contentFit="cover" transition={200} />
+              </Pressable>
             ))}
           </ScrollView>
           <View style={styles.counter}>
@@ -110,7 +119,7 @@ function ListingDetails({ listing }: { listing: Listing }) {
           <Text style={styles.title}>{listing.title}</Text>
 
           <View style={styles.metaRow}>
-            <StarBoldIcon size={16} color={Brand.text} />
+            <StarBoldIcon size={16} color={colors.text} />
             <Text style={styles.meta}>{listing.rating.toFixed(2)} · </Text>
             <Text style={[styles.meta, styles.underline]}>{listing.reviews} reviews</Text>
             {listing.host.superhost && (
@@ -219,6 +228,7 @@ function ListingDetails({ listing }: { listing: Listing }) {
 }
 
 function RoundButton({ children, onPress, label }: { children: ReactNode; onPress: () => void; label: string }) {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -229,10 +239,10 @@ function RoundButton({ children, onPress, label }: { children: ReactNode; onPres
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   center: {
     alignItems: 'center',
@@ -249,7 +259,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(34,34,34,0.75)',
   },
   counterText: {
-    color: '#FFFFFF',
+    color: c.white,
     fontSize: 13,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
@@ -262,7 +272,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.6,
     marginBottom: 14,
   },
@@ -276,7 +286,7 @@ const styles = StyleSheet.create({
   meta: {
     fontSize: 15,
     lineHeight: 22,
-    color: Brand.text,
+    color: c.text,
   },
   underline: {
     fontWeight: '600',
@@ -284,7 +294,7 @@ const styles = StyleSheet.create({
   },
   rule: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Brand.border,
+    backgroundColor: c.border,
     marginVertical: 24,
   },
   hostRow: {
@@ -297,19 +307,19 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.3,
   },
   avatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Brand.text,
+    backgroundColor: c.inverse,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#FFFFFF',
+    color: c.onInverse,
     fontSize: 22,
     fontWeight: '700',
   },
@@ -320,9 +330,9 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: Brand.primary,
+    backgroundColor: c.primary,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -340,24 +350,24 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Brand.border,
+    borderColor: c.border,
     justifyContent: 'space-between',
   },
   featureText: {
     fontSize: 15,
     lineHeight: 20,
-    color: Brand.text,
+    color: c.text,
   },
   sectionTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     marginBottom: 12,
   },
   paragraph: {
     fontSize: 16,
     lineHeight: 24,
-    color: Brand.text,
+    color: c.text,
   },
   amenity: {
     flexDirection: 'row',
@@ -380,7 +390,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: c.overlayButton,
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 1px 6px rgba(0,0,0,0.15)',
@@ -388,10 +398,10 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 20,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
   },
   priceNote: {
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
   },
-});
+}));

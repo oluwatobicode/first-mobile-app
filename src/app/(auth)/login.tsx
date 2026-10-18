@@ -10,13 +10,14 @@ import { FormView } from '@/components/form-view';
 import { AltArrowDownIcon, LetterIcon } from '@/components/icons';
 import { KEYBOARD_BAR_ID, KeyboardBar } from '@/components/keyboard-bar';
 import { Button, ScreenHeader } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { DEMO_LOGIN, useAuth } from '@/hooks/use-auth';
 import { useBooking } from '@/hooks/use-booking';
 import { formatPhone } from '@/lib/format';
 import { phoneSchema, type PhoneForm } from '@/lib/validation';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 export default function LoginScreen() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { pickerCountry } = useBooking();
   const { setPending } = useAuth();
@@ -101,18 +102,20 @@ export default function LoginScreen() {
 }
 
 function SocialButton({ label, icon, onPress }: { label: string; icon: ReactNode; onPress?: () => void }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={onPress ?? (() => Alert.alert(label, 'Social logins aren’t wired up in this practice app. Use phone or email.'))}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.social, pressed && { backgroundColor: Brand.surface }]}>
+      style={({ pressed }) => [styles.social, pressed && { backgroundColor: colors.surface }]}>
       <View style={styles.socialIcon}>{icon}</View>
       <Text style={styles.socialText}>{label}</Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   content: {
     padding: 24,
   },
@@ -124,18 +127,18 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 12,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   inputValue: {
     marginTop: 2,
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
   },
   note: {
     marginTop: 10,
     fontSize: 13,
     lineHeight: 18,
-    color: Brand.text,
+    color: c.text,
   },
   orRow: {
     flexDirection: 'row',
@@ -146,11 +149,11 @@ const styles = StyleSheet.create({
   orLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Brand.border,
+    backgroundColor: c.border,
   },
   orText: {
     fontSize: 13,
-    color: Brand.text,
+    color: c.text,
   },
   socials: {
     gap: 14,
@@ -159,7 +162,7 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Brand.text,
+    borderColor: c.text,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -172,11 +175,11 @@ const styles = StyleSheet.create({
   socialText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   apple: {
     fontSize: 24,
-    color: '#000000',
+    color: c.text,
   },
   googleG: {
     fontSize: 22,
@@ -193,10 +196,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   facebookF: {
-    color: '#FFFFFF',
+    color: c.white,
     fontSize: 20,
     fontWeight: '800',
     lineHeight: 22,
     marginRight: -3,
   },
-});
+}));

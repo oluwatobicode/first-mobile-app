@@ -4,16 +4,18 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 
 import { CloseIcon, StarBoldIcon } from '@/components/icons';
 import { Button, FooterBar, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { formatPrice, getListing } from '@/data/listings';
 import { isNightly, useBooking } from '@/hooks/use-booking';
 import { addDays, formatDay, monthGrid, monthTitle, nightsBetween, todayKey, upcomingMonths, isBooked } from '@/lib/dates';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = upcomingMonths(12);
 const PAD = 16;
 
 export default function DatesScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const listing = getListing(id);
   const { draftFor, updateDraft } = useBooking();
@@ -177,7 +179,7 @@ export default function DatesScreen() {
             <Text style={styles.footerPrice}>Add dates for prices</Text>
           )}
           <View style={styles.footerRating}>
-            <StarBoldIcon size={14} color={Brand.text} />
+            <StarBoldIcon size={14} color={colors.text} />
             <Text style={styles.footerRatingText}>{listing.rating.toFixed(2)}</Text>
           </View>
         </View>
@@ -187,10 +189,10 @@ export default function DatesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   topBar: {
     flexDirection: 'row',
@@ -208,23 +210,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.4,
   },
   subtitle: {
     fontSize: 15,
-    color: Brand.text,
+    color: c.text,
   },
   weekdays: {
     flexDirection: 'row',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Brand.border,
+    borderBottomColor: c.border,
   },
   weekday: {
     textAlign: 'center',
     fontSize: 13,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   month: {
     paddingTop: 24,
@@ -232,7 +234,7 @@ const styles = StyleSheet.create({
   monthTitle: {
     fontSize: 19,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     paddingHorizontal: 8,
     marginBottom: 12,
   },
@@ -244,33 +246,33 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: '#F1F1F1',
+    backgroundColor: c.surface,
   },
   day: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   daySelected: {
-    backgroundColor: Brand.text,
+    backgroundColor: c.inverse,
   },
   dayText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   dayUnavailable: {
-    color: '#B0B0B0',
+    color: c.placeholder,
     fontWeight: '400',
     textDecorationLine: 'line-through',
   },
   dayTextSelected: {
-    color: '#FFFFFF',
+    color: c.onInverse,
   },
   footerPrice: {
     fontSize: 16,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   footerRating: {
     flexDirection: 'row',
@@ -280,6 +282,6 @@ const styles = StyleSheet.create({
   },
   footerRatingText: {
     fontSize: 14,
-    color: Brand.text,
+    color: c.text,
   },
-});
+}));

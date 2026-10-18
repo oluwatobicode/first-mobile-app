@@ -6,11 +6,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { HeartButton } from '@/components/heart-button';
 import { StarBoldIcon } from '@/components/icons';
 import { Button, FooterBar, ScreenHeader, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { formatPrice, getListing, LISTINGS, placeOf } from '@/data/listings';
 import { useBooking } from '@/hooks/use-booking';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 export default function ThingsToDoScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { trips } = useBooking();
   const { width } = useWindowDimensions();
@@ -50,7 +52,7 @@ export default function ThingsToDoScreen() {
                     </View>
                   </View>
                   <View style={styles.rating}>
-                    <StarBoldIcon size={14} color={Brand.text} />
+                    <StarBoldIcon size={14} color={colors.text} />
                     <Text style={styles.small}>
                       {item.rating.toFixed(1)} <Text style={styles.muted}>({item.reviews})</Text>
                     </Text>
@@ -75,10 +77,10 @@ export default function ThingsToDoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   content: {
     padding: 24,
@@ -89,13 +91,13 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.6,
   },
   body: {
     fontSize: 17,
     lineHeight: 26,
-    color: Brand.text,
+    color: c.text,
   },
   grid: {
     flexDirection: 'row',
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderCurve: 'continuous',
     overflow: 'hidden',
-    backgroundColor: Brand.surface,
+    backgroundColor: c.surface,
   },
   heart: {
     position: 'absolute',
@@ -125,17 +127,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 16,
     lineHeight: 21,
-    color: Brand.text,
+    color: c.text,
   },
   small: {
     marginTop: 4,
     fontSize: 15,
-    color: Brand.text,
+    color: c.text,
   },
   muted: {
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   bold: {
     fontWeight: '700',
   },
-});
+}));

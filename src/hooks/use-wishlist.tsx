@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+
+import { usePersistedState } from '@/hooks/use-persisted-state';
 
 type WishlistContextValue = {
   ids: string[];
@@ -9,7 +11,7 @@ type WishlistContextValue = {
 const WishlistContext = createContext<WishlistContextValue | null>(null);
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
-  const [ids, setIds] = useState<string[]>([]);
+  const [ids, setIds] = usePersistedState<string[]>('wishlist', []);
 
   const value: WishlistContextValue = {
     ids,

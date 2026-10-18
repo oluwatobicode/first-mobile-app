@@ -6,9 +6,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FieldMessage } from '@/components/form/text-field';
 import { AddIcon, MinusIcon } from '@/components/icons';
 import { Button, ScreenHeader, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { useBooking } from '@/hooks/use-booking';
 import { guestsSchema, type GuestsForm } from '@/lib/validation';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 const TYPES: { key: keyof GuestsForm; label: string; hint: string; min: number }[] = [
   { key: 'adults', label: 'Adults', hint: 'Age 13+', min: 1 },
@@ -18,6 +18,7 @@ const TYPES: { key: keyof GuestsForm; label: string; hint: string; min: number }
 ];
 
 export default function GuestsSheet() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { draftFor, updateDraft } = useBooking();
   const { control, handleSubmit, formState } = useForm<GuestsForm>({
@@ -66,6 +67,7 @@ type GuestRowProps = {
 };
 
 function GuestRow({ control, name, label, hint, min, bordered }: GuestRowProps) {
+  const styles = useStyles();
   const { field } = useController({ control, name });
   return (
     <View style={[styles.row, bordered && styles.rowBorder]}>
@@ -83,6 +85,8 @@ function GuestRow({ control, name, label, hint, min, bordered }: GuestRowProps) 
 }
 
 function StepButton({ kind, disabled, onPress, label }: { kind: 'plus' | 'minus'; disabled: boolean; onPress: () => void; label: string }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const Icon = kind === 'plus' ? AddIcon : MinusIcon;
   return (
     <Pressable
@@ -92,15 +96,15 @@ function StepButton({ kind, disabled, onPress, label }: { kind: 'plus' | 'minus'
       accessibilityRole="button"
       accessibilityLabel={`${kind === 'plus' ? 'Add' : 'Remove'} one ${label.toLowerCase()}`}
       style={[styles.step, disabled && styles.stepDisabled]}>
-      <Icon size={18} strokeWidth={2} color={disabled ? '#DDDDDD' : Brand.text} />
+      <Icon size={18} strokeWidth={2} color={disabled ? colors.disabled : colors.text} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   content: {
     paddingHorizontal: 24,
@@ -113,23 +117,23 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Brand.border,
+    borderTopColor: c.border,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   hint: {
     marginTop: 2,
     fontSize: 14,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   value: {
     minWidth: 20,
     textAlign: 'center',
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   step: {
@@ -137,12 +141,12 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: '#B0B0B0',
+    borderColor: c.inputBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepDisabled: {
-    borderColor: '#EBEBEB',
+    borderColor: c.border,
   },
   footer: {
     flexDirection: 'row',
@@ -151,4 +155,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
   },
-});
+}));

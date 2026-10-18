@@ -5,10 +5,10 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { AltArrowRightIcon, BellIcon, GlobalIcon, HomeIcon, QuestionCircleIcon, SettingsIcon, type SolarIcon } from '@/components/icons';
 import { EmptyState, TabScreen } from '@/components/tab-screen';
 import { TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { useAuth } from '@/hooks/use-auth';
 import { useBooking } from '@/hooks/use-booking';
 import { sendTestNotification } from '@/lib/notifications';
+import { createStyles, useTheme, type ThemePreference } from '@/hooks/use-theme';
 
 const ROWS: { Icon: SolarIcon; label: string }[] = [
   { Icon: SettingsIcon, label: 'Account settings' },
@@ -18,6 +18,8 @@ const ROWS: { Icon: SolarIcon; label: string }[] = [
 ];
 
 export default function ProfileScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { user, signOut } = useAuth();
   const { trips, remindersOn, setRemindersOn } = useBooking();
 
@@ -60,6 +62,9 @@ export default function ProfileScreen() {
         </>
       )}
 
+      <Text style={styles.sectionTitle}>Appearance</Text>
+      <ThemePicker />
+
       <View style={styles.list}>
         <View style={styles.row}>
           <BellIcon size={24} />
@@ -70,7 +75,7 @@ export default function ProfileScreen() {
           <Switch
             value={remindersOn}
             onValueChange={setRemindersOn}
-            trackColor={{ true: Brand.text }}
+            trackColor={{ true: colors.text }}
             accessibilityLabel="Trip reminders"
           />
         </View>
@@ -83,13 +88,13 @@ export default function ProfileScreen() {
           }}>
           <BellIcon size={24} />
           <Text style={styles.rowLabel}>Send a test notification</Text>
-          <AltArrowRightIcon size={20} color={Brand.textSecondary} />
+          <AltArrowRightIcon size={20} color={colors.textSecondary} />
         </Pressable>
         {ROWS.map((row) => (
           <Pressable key={row.label} style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
             <row.Icon size={24} />
             <Text style={styles.rowLabel}>{row.label}</Text>
-            <AltArrowRightIcon size={20} color={Brand.textSecondary} />
+            <AltArrowRightIcon size={20} color={colors.textSecondary} />
           </Pressable>
         ))}
       </View>
@@ -111,7 +116,37 @@ export default function ProfileScreen() {
   );
 }
 
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
+/** System / Light / Dark segmented control. The choice is saved on the device. */
+function ThemePicker() {
+  const styles = useStyles();
+  const { preference, setPreference } = useTheme();
+  return (
+    <View style={styles.segments} accessibilityRole="radiogroup">
+      {THEME_OPTIONS.map((option) => {
+        const selected = preference === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => setPreference(option.value)}
+            style={[styles.segment, selected && styles.segmentSelected]}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}>
+            <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>{option.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function Stat({ value, label }: { value: number; label: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
@@ -121,6 +156,7 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.detail}>
       <Text style={styles.muted}>{label}</Text>
@@ -129,25 +165,25 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   card: {
     alignItems: 'center',
     padding: 24,
     borderRadius: 24,
     borderCurve: 'continuous',
-    backgroundColor: Brand.background,
+    backgroundColor: c.elevated,
     boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
   },
   avatar: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: Brand.text,
+    backgroundColor: c.inverse,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#FFFFFF',
+    color: c.onInverse,
     fontSize: 40,
     fontWeight: '700',
   },
@@ -155,11 +191,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 28,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
   },
   muted: {
     fontSize: 14,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   stats: {
     flexDirection: 'row',
@@ -173,16 +209,16 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
   },
   statLabel: {
     fontSize: 12,
-    color: Brand.text,
+    color: c.text,
   },
   statDivider: {
     width: 1,
     height: 30,
-    backgroundColor: Brand.border,
+    backgroundColor: c.border,
   },
   details: {
     marginTop: 24,
@@ -193,19 +229,51 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
   },
   signUp: {
     marginTop: 16,
   },
   signUpText: {
     fontSize: 14,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   signUpLink: {
-    color: Brand.text,
+    color: c.text,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  sectionTitle: {
+    marginTop: 36,
+    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '700',
+    color: c.text,
+  },
+  segments: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: 14,
+    backgroundColor: c.surface,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  segmentSelected: {
+    backgroundColor: c.elevated,
+    boxShadow: `0 1px 4px ${c.shadow}`,
+  },
+  segmentText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: c.textSecondary,
+  },
+  segmentTextSelected: {
+    fontWeight: '700',
+    color: c.text,
   },
   list: {
     marginTop: 36,
@@ -216,16 +284,16 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingVertical: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Brand.border,
+    borderBottomColor: c.border,
   },
   rowLabel: {
     flex: 1,
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
   },
   rowHint: {
     marginTop: 2,
     fontSize: 13,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
-});
+}));

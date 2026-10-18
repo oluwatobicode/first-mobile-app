@@ -1,21 +1,23 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CardIcon, SmartphoneIcon, WalletIcon } from '@/components/icons';
-import { Brand } from '@/constants/theme';
 import type { PaymentMethod } from '@/hooks/use-booking';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 type CardBrand = NonNullable<PaymentMethod['brand']>;
 
 /** Small framed logo for a saved payment method, like the ones in the "Pay with" rows. */
 export function PaymentBadge({ method }: { method: Pick<PaymentMethod, 'kind' | 'brand'> }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <View style={styles.frame}>
       {method.kind === 'card' ? (
         <BrandMark brand={method.brand ?? 'visa'} />
       ) : method.kind === 'bank' ? (
-        <WalletIcon size={22} color={Brand.text} />
+        <WalletIcon size={22} color={colors.text} />
       ) : (
-        <SmartphoneIcon size={22} color={Brand.text} />
+        <SmartphoneIcon size={22} color={colors.text} />
       )}
     </View>
   );
@@ -23,6 +25,7 @@ export function PaymentBadge({ method }: { method: Pick<PaymentMethod, 'kind' | 
 
 /** Text-and-shape stand-ins for card network logos. */
 export function BrandMark({ brand, scale = 1 }: { brand: CardBrand; scale?: number }) {
+  const styles = useStyles();
   if (brand === 'mastercard') {
     const size = 18 * scale;
     return (
@@ -51,16 +54,16 @@ export function GenericCardIcon() {
   return <CardIcon size={34} color="#B0B0B0" />;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   frame: {
     width: 52,
     height: 36,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Brand.border,
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   mark: {
     fontWeight: '900',
@@ -69,4 +72,4 @@ const styles = StyleSheet.create({
   italic: {
     fontStyle: 'italic',
   },
-});
+}));

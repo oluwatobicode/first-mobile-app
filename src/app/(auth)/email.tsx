@@ -1,15 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useForm } from 'react-hook-form';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { TextField } from '@/components/form/text-field';
 import { FormView } from '@/components/form-view';
 import { Button, FooterBar, ScreenHeader } from '@/components/ui';
 import { DEMO_LOGIN, useAuth } from '@/hooks/use-auth';
 import { emailSchema, type EmailForm } from '@/lib/validation';
+import { createStyles } from '@/hooks/use-theme';
 
 export default function EmailScreen() {
+  const styles = useStyles();
   const { setPending, findByEmail } = useAuth();
   const { control, handleSubmit } = useForm<EmailForm>({
     resolver: zodResolver(emailSchema),
@@ -48,9 +50,9 @@ export default function EmailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   content: {
     flex: 1,
     padding: 24,
   },
-});
+}));

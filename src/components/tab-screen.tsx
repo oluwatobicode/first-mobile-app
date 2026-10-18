@@ -1,17 +1,20 @@
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Brand } from '@/constants/theme';
+import { useTabBarSpace } from '@/components/glass-tab-bar';
+import { createStyles } from '@/hooks/use-theme';
 
 export function TabScreen({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   return (
     <ScrollView
       style={styles.screen}
       contentContainerStyle={{
         paddingTop: insets.top + 24,
-        paddingBottom: 32,
+        paddingBottom: tabBarSpace + 16,
         paddingHorizontal: 24,
       }}>
       <Text style={styles.title}>{title}</Text>
@@ -28,6 +31,7 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ emoji, heading, body, action }: EmptyStateProps) {
+  const styles = useStyles();
   return (
     <View style={styles.empty}>
       <Text style={styles.emoji}>{emoji}</Text>
@@ -44,15 +48,15 @@ export function EmptyState({ emoji, heading, body, action }: EmptyStateProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.6,
     marginBottom: 28,
   },
@@ -67,12 +71,12 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
   },
   body: {
     fontSize: 15,
     lineHeight: 22,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   button: {
     marginTop: 16,
@@ -81,12 +85,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E31C5F',
-    experimental_backgroundImage: 'linear-gradient(90deg, #E61E4D, #D70466)',
+    backgroundColor: c.gradientSolid,
+    experimental_backgroundImage: c.gradient,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: c.white,
     fontSize: 16,
     fontWeight: '600',
   },
-});
+}));

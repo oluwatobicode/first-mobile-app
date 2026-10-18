@@ -1,13 +1,15 @@
 import { router } from 'expo-router';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 
 import { ListingCard } from '@/components/listing-card';
 import { EmptyState, TabScreen } from '@/components/tab-screen';
 import { getListing } from '@/data/listings';
 import { useWishlist } from '@/hooks/use-wishlist';
+import { createStyles } from '@/hooks/use-theme';
 
 export default function WishlistsScreen() {
+  const styles = useStyles();
   const { ids } = useWishlist();
   const { width } = useWindowDimensions();
   const cardWidth = (Math.min(width, 800) - 24 * 2 - 14) / 2;
@@ -35,11 +37,11 @@ export default function WishlistsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     columnGap: 14,
     rowGap: 24,
   },
-});
+}));

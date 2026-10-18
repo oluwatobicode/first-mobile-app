@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
-import { Keyboard, Platform, StyleSheet, View } from 'react-native';
+import { Keyboard, Platform, View } from 'react-native';
 
-import { Brand } from '@/constants/theme';
+import { createStyles } from '@/hooks/use-theme';
 
 /**
  * Keeps a form's footer above the keyboard, including inside modals and sheets.
@@ -9,6 +9,7 @@ import { Brand } from '@/constants/theme';
  * so instead we measure where our bottom edge is on screen and pad by exactly the overlap.
  */
 export function FormView({ children }: { children: ReactNode }) {
+  const styles = useStyles();
   const ref = useRef<ComponentRef<typeof View>>(null);
   const [inset, setInset] = useState(0);
 
@@ -43,9 +44,9 @@ export function FormView({ children }: { children: ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
-});
+}));

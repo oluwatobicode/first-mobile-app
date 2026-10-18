@@ -2,11 +2,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { FlatList, Pressable, StyleSheet, Text } from 'react-native';
 
 import { Radio, ScreenHeader } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { COUNTRIES } from '@/data/countries';
 import { useBooking } from '@/hooks/use-booking';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 export default function CountryPicker() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { target = 'phone' } = useLocalSearchParams<{ target?: 'phone' | 'card' }>();
   const { pickerCountry, setPickerCountry } = useBooking();
   const selected = pickerCountry[target];
@@ -22,7 +24,7 @@ export default function CountryPicker() {
         getItemLayout={(_, index) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * index, index })}
         renderItem={({ item }) => (
           <Pressable
-            style={({ pressed }) => [styles.row, pressed && { backgroundColor: Brand.surface }]}
+            style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surface }]}
             onPress={() => {
               setPickerCountry(target, item);
               router.back();
@@ -40,10 +42,10 @@ export default function CountryPicker() {
 
 const ROW_HEIGHT = 76;
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   list: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   row: {
     height: ROW_HEIGHT,
@@ -52,10 +54,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Brand.border,
+    borderBottomColor: c.border,
   },
   name: {
     fontSize: 17,
-    color: Brand.text,
+    color: c.text,
   },
-});
+}));

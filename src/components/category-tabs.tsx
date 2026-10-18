@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -8,8 +8,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
-import { Brand } from '@/constants/theme';
 import { CATEGORIES, type Category } from '@/data/listings';
+import { createStyles } from '@/hooks/use-theme';
 
 type Props = {
   value: Category;
@@ -18,6 +18,7 @@ type Props = {
 };
 
 export function CategoryTabs({ value, onChange, compact = false }: Props) {
+  const styles = useStyles();
   return (
     <View style={[styles.row, compact && styles.rowCompact]}>
       {CATEGORIES.map((category) => (
@@ -48,6 +49,7 @@ type TabProps = {
 };
 
 function CategoryTab({ label, emoji, isNew, active, compact, onPress }: TabProps) {
+  const styles = useStyles();
   const bounce = useSharedValue(1);
 
   useEffect(() => {
@@ -74,7 +76,7 @@ function CategoryTab({ label, emoji, isNew, active, compact, onPress }: TabProps
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -106,10 +108,10 @@ const styles = StyleSheet.create({
     experimental_backgroundImage: 'linear-gradient(180deg, #4A5A82, #26324F)',
     backgroundColor: '#2F3B5C',
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: c.background,
   },
   newText: {
-    color: '#FFFFFF',
+    color: c.white,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -118,10 +120,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 14,
     fontWeight: '500',
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   labelActive: {
-    color: Brand.text,
+    color: c.text,
     fontWeight: '700',
   },
   underline: {
@@ -132,6 +134,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   underlineActive: {
-    backgroundColor: Brand.text,
+    backgroundColor: c.text,
   },
-});
+}));

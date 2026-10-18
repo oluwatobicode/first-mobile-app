@@ -1,12 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useController, type Control, type FieldValues, type Path } from 'react-hook-form';
 
 import { DangerCircleIcon } from '@/components/icons';
-import { Brand } from '@/constants/theme';
-
-export const ERROR = '#C13515';
-export const ERROR_BG = '#FFF8F6';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 type Props<T extends FieldValues> = Omit<TextInputProps, 'value' | 'onChangeText' | 'onBlur' | 'defaultValue'> & {
   control: Control<T>;
@@ -41,6 +38,8 @@ export function TextField<T extends FieldValues>({
     fieldState,
   } = useController({ control, name });
   const [focused, setFocused] = useState(false);
+  const styles = useStyles();
+  const { colors } = useTheme();
   const value: string = rawValue ?? '';
   const error = fieldState.error?.message;
   const raised = focused || value.length > 0;
@@ -71,7 +70,7 @@ export function TextField<T extends FieldValues>({
               onBlur();
             }}
             placeholder={raised ? placeholder : label}
-            placeholderTextColor={raised ? '#B0B0B0' : Brand.textSecondary}
+            placeholderTextColor={raised ? colors.placeholder : colors.textSecondary}
             accessibilityLabel={label}
             accessibilityHint={error ?? helper}
             style={[styles.input, style]}
@@ -88,6 +87,7 @@ export function TextField<T extends FieldValues>({
 /** Several fields in one bordered box, like first + last name or the card number block. */
 export function FieldGroup({ children, errors = [], helper }: { children: ReactNode; errors?: (string | undefined)[]; helper?: string }) {
   const firstError = errors.find(Boolean);
+  const styles = useStyles();
   return (
     <View>
       <View style={[styles.group, firstError && styles.fieldErrorBorder]}>{children}</View>
@@ -97,14 +97,17 @@ export function FieldGroup({ children, errors = [], helper }: { children: ReactN
 }
 
 export function GroupDivider({ vertical }: { vertical?: boolean }) {
+  const styles = useStyles();
   return <View style={vertical ? styles.dividerVertical : styles.divider} />;
 }
 
 export function FieldMessage({ error, helper }: { error?: string; helper?: string }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   if (error) {
     return (
       <View style={styles.messageRow} accessibilityLiveRegion="polite">
-        <DangerCircleIcon size={16} color={ERROR} strokeWidth={2} />
+        <DangerCircleIcon size={16} color={colors.error} strokeWidth={2} />
         <Text style={styles.errorText}>{error}</Text>
       </View>
     );
@@ -113,18 +116,18 @@ export function FieldMessage({ error, helper }: { error?: string; helper?: strin
   return null;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 64,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   fieldStandalone: {
     borderWidth: 1,
-    borderColor: '#B0B0B0',
+    borderColor: c.inputBorder,
     borderRadius: 12,
   },
   fieldInGroup: {
@@ -132,41 +135,41 @@ const styles = StyleSheet.create({
   },
   fieldFocused: {
     borderWidth: 2,
-    borderColor: Brand.text,
+    borderColor: c.text,
     paddingHorizontal: 13,
   },
   fieldError: {
-    backgroundColor: ERROR_BG,
+    backgroundColor: c.errorBg,
   },
   fieldErrorBorder: {
-    borderColor: ERROR,
+    borderColor: c.error,
   },
   label: {
     fontSize: 12,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   labelError: {
-    color: ERROR,
+    color: c.error,
   },
   input: {
     fontSize: 17,
-    color: Brand.text,
+    color: c.text,
     paddingVertical: 4,
     paddingHorizontal: 0,
   },
   group: {
     borderWidth: 1,
-    borderColor: '#B0B0B0',
+    borderColor: c.inputBorder,
     borderRadius: 12,
     overflow: 'hidden',
   },
   divider: {
     height: 1,
-    backgroundColor: '#B0B0B0',
+    backgroundColor: c.inputBorder,
   },
   dividerVertical: {
     width: 1,
-    backgroundColor: '#B0B0B0',
+    backgroundColor: c.inputBorder,
   },
   messageRow: {
     flexDirection: 'row',
@@ -178,12 +181,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
-    color: ERROR,
+    color: c.error,
   },
   helper: {
     marginTop: 8,
     fontSize: 13,
     lineHeight: 18,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
-});
+}));

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp, LinearTransition } from 'react-native-reanimated';
 
 import { CodeField } from '@/components/form/code-field';
@@ -9,8 +9,8 @@ import { FormView } from '@/components/form-view';
 import { LetterIcon } from '@/components/icons';
 import { KeyboardBar } from '@/components/keyboard-bar';
 import { Button, FooterBar, ScreenHeader, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { codeSchema, type CodeForm } from '@/lib/validation';
+import { createStyles } from '@/hooks/use-theme';
 
 function newCode() {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -25,6 +25,7 @@ type Props = {
 
 /** "Confirm your number": enter the SMS code. A fake SMS banner shows the code, since nothing is really sent. */
 export function VerifyCodeScreen({ destination, leading = 'close', onVerified }: Props) {
+  const styles = useStyles();
   const [expected, setExpected] = useState(newCode);
   const [showSms, setShowSms] = useState(true);
   const { control, handleSubmit, setError, setValue, reset } = useForm<CodeForm>({
@@ -98,7 +99,7 @@ export function VerifyCodeScreen({ destination, leading = 'close', onVerified }:
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   content: {
     flex: 1,
     padding: 24,
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 17,
     lineHeight: 24,
-    color: Brand.text,
+    color: c.text,
   },
   link: {
     fontWeight: '700',
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     borderRadius: 20,
-    backgroundColor: 'rgba(245,245,245,0.98)',
+    backgroundColor: c.elevated,
     boxShadow: '0 6px 24px rgba(0,0,0,0.18)',
   },
   smsIcon: {
@@ -137,11 +138,11 @@ const styles = StyleSheet.create({
   smsTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   smsBody: {
     marginTop: 2,
     fontSize: 15,
-    color: Brand.text,
+    color: c.text,
   },
-});
+}));

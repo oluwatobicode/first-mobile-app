@@ -9,12 +9,13 @@ import { FormView } from '@/components/form-view';
 import { CheckIcon } from '@/components/icons';
 import { KEYBOARD_BAR_ID, KeyboardBar } from '@/components/keyboard-bar';
 import { Button, ScreenHeader } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { exitAuth, useAuth } from '@/hooks/use-auth';
 import { formatBirthday } from '@/lib/format';
 import { signupSchema, signupWithPasswordSchema, type SignupForm } from '@/lib/validation';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 export default function FinishSignupScreen() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { pending, findByEmail, register, signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -165,7 +166,9 @@ export default function FinishSignupScreen() {
 }
 
 function Checkbox({ control, label }: { control: Control<SignupForm>; label: string }) {
+  const styles = useStyles();
   const { field } = useController({ control, name: 'marketingOptOut' });
+  const { colors } = useTheme();
   return (
     <Pressable
       style={styles.checkboxRow}
@@ -174,13 +177,13 @@ function Checkbox({ control, label }: { control: Control<SignupForm>; label: str
       accessibilityState={{ checked: field.value }}>
       <Text style={styles.checkboxLabel}>{label}</Text>
       <View style={[styles.checkbox, field.value && styles.checkboxChecked]}>
-        {field.value && <CheckIcon size={18} color="#FFFFFF" strokeWidth={2.5} />}
+        {field.value && <CheckIcon size={18} color={colors.onInverse} strokeWidth={2.5} />}
       </View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   content: {
     padding: 24,
     gap: 26,
@@ -191,18 +194,18 @@ const styles = StyleSheet.create({
   caption: {
     fontSize: 16,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   toggle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     textDecorationLine: 'underline',
   },
   legal: {
     fontSize: 13,
     lineHeight: 19,
-    color: Brand.text,
+    color: c.text,
   },
   bold: {
     fontWeight: '700',
@@ -218,14 +221,14 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Brand.border,
+    borderTopColor: c.border,
   },
   checkboxLabel: {
     flex: 1,
     paddingTop: 16,
     fontSize: 14,
     lineHeight: 20,
-    color: Brand.text,
+    color: c.text,
   },
   checkbox: {
     marginTop: 16,
@@ -233,12 +236,12 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: '#B0B0B0',
+    borderColor: c.inputBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    borderColor: Brand.text,
-    backgroundColor: Brand.text,
+    borderColor: c.inverse,
+    backgroundColor: c.inverse,
   },
-});
+}));

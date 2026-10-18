@@ -1,11 +1,11 @@
 import { useEffect, useRef, type ComponentRef } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import { Platform, Pressable, Text, TextInput } from 'react-native';
 import { useController, type Control, type FieldValues, type Path } from 'react-hook-form';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
-import { ERROR, ERROR_BG, FieldMessage } from '@/components/form/text-field';
+import { FieldMessage } from '@/components/form/text-field';
 import { KEYBOARD_BAR_ID } from '@/components/keyboard-bar';
-import { Brand } from '@/constants/theme';
+import { createStyles } from '@/hooks/use-theme';
 
 type Props<T extends FieldValues> = {
   control: Control<T>;
@@ -23,6 +23,7 @@ export function CodeField<T extends FieldValues>({ control, name, length = 4, on
   } = useController({ control, name });
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const shake = useSharedValue(0);
+  const styles = useStyles();
   const value: string = rawValue ?? '';
   const error = fieldState.error?.message;
 
@@ -78,30 +79,30 @@ export function CodeField<T extends FieldValues>({ control, name, length = 4, on
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   box: {
     width: 220,
     height: 70,
     borderWidth: 2,
-    borderColor: Brand.text,
+    borderColor: c.text,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
   },
   boxError: {
-    borderColor: ERROR,
-    backgroundColor: ERROR_BG,
+    borderColor: c.error,
+    backgroundColor: c.errorBg,
   },
   digit: {
     fontSize: 22,
     fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
-    color: Brand.text,
+    color: c.text,
     width: 22,
     textAlign: 'center',
   },
   placeholder: {
-    color: '#9A9A9A',
+    color: c.placeholder,
   },
   hiddenInput: {
     position: 'absolute',
@@ -109,4 +110,4 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-});
+}));

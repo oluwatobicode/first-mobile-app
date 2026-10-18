@@ -16,8 +16,9 @@ import {
   MinusIcon,
   WaterIcon,
 } from '@/components/icons';
-import { Brand } from '@/constants/theme';
 import { DESTINATIONS, type Category } from '@/data/listings';
+import { useFilters } from '@/hooks/use-filters';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 type Step = 'where' | 'when' | 'who';
 
@@ -37,11 +38,14 @@ const DESTINATION_ICONS = { nearby: MapPointIcon, beach: WaterIcon, city: Buildi
 const layout = LinearTransition.springify().damping(18).stiffness(160);
 
 export default function SearchScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<Category>('homes');
   const [step, setStep] = useState<Step>('where');
   const [query, setQuery] = useState('');
-  const [where, setWhere] = useState<string | null>(null);
+  const { filters, setFilters } = useFilters();
+  const [where, setWhere] = useState<string | null>(filters.where);
   const [when, setWhen] = useState<string | null>(null);
   const [guests, setGuests] = useState(NO_GUESTS);
 
@@ -80,7 +84,7 @@ export default function SearchScreen() {
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Search destinations"
-                placeholderTextColor={Brand.textSecondary}
+                placeholderTextColor={colors.textSecondary}
                 style={styles.input}
                 returnKeyType="search"
                 onSubmitEditing={() => {
@@ -170,7 +174,11 @@ export default function SearchScreen() {
           <Text style={styles.clearAll}>Clear all</Text>
         </Pressable>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            // "Nearby" isn't a place we can filter by, so it just shows everything.
+            setFilters({ where: where && where !== 'Nearby' ? where : null, guests: guestCount });
+            router.back();
+          }}
           style={({ pressed }) => [styles.searchButton, pressed && { transform: [{ scale: 0.97 }] }]}>
           <MagnifierIcon size={22} color="#FFFFFF" strokeWidth={2.2} />
           <Text style={styles.searchButtonText}>Search</Text>
@@ -181,6 +189,7 @@ export default function SearchScreen() {
 }
 
 function CollapsedRow({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Animated.View layout={layout}>
       <Pressable onPress={onPress} style={[styles.card, styles.cardCollapsed]}>
@@ -192,6 +201,7 @@ function CollapsedRow({ label, value, onPress }: { label: string; value: string;
 }
 
 function Stepper({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.stepper}>
       <StepperButton icon="minus" disabled={value === 0} onPress={() => onChange(value - 1)} />
@@ -202,7 +212,9 @@ function Stepper({ value, onChange }: { value: number; onChange: (value: number)
 }
 
 function StepperButton({ icon, disabled, onPress }: { icon: 'plus' | 'minus'; disabled: boolean; onPress: () => void }) {
-  const color = disabled ? '#EBEBEB' : Brand.textSecondary;
+  const styles = useStyles();
+  const { colors } = useTheme();
+  const color = disabled ? colors.border : colors.textSecondary;
   return (
     <Pressable
       onPress={onPress}
@@ -210,18 +222,18 @@ function StepperButton({ icon, disabled, onPress }: { icon: 'plus' | 'minus'; di
       style={[styles.stepperButton, { borderColor: color }]}
       accessibilityLabel={icon === 'plus' ? 'Increase' : 'Decrease'}>
       {icon === 'plus' ? (
-        <AddIcon size={18} color={disabled ? '#DDDDDD' : Brand.text} strokeWidth={2} />
+        <AddIcon size={18} color={disabled ? colors.disabled : colors.text} strokeWidth={2} />
       ) : (
-        <MinusIcon size={18} color={disabled ? '#DDDDDD' : Brand.text} strokeWidth={2} />
+        <MinusIcon size={18} color={disabled ? colors.disabled : colors.text} strokeWidth={2} />
       )}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: '#F3F3F3',
+    backgroundColor: c.canvas,
   },
   topBar: {
     flexDirection: 'row',
@@ -233,7 +245,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
@@ -243,7 +255,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   card: {
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
     borderRadius: 28,
     borderCurve: 'continuous',
     boxShadow: '0 4px 18px rgba(0,0,0,0.08)',
@@ -261,18 +273,18 @@ const styles = StyleSheet.create({
   },
   collapsedLabel: {
     fontSize: 15,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
     fontWeight: '500',
   },
   collapsedValue: {
     fontSize: 15,
-    color: Brand.text,
+    color: c.text,
     fontWeight: '600',
   },
   bigTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.5,
     marginBottom: 18,
   },
@@ -284,18 +296,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#B0B0B0',
+    borderColor: c.inputBorder,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
   },
   smallHeading: {
     marginTop: 22,
     marginBottom: 6,
     fontSize: 13,
-    color: Brand.text,
+    color: c.text,
     fontWeight: '500',
   },
   destination: {
@@ -314,12 +326,12 @@ const styles = StyleSheet.create({
   destinationTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   destinationSubtitle: {
     marginTop: 2,
     fontSize: 14,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   chips: {
     flexDirection: 'row',
@@ -331,15 +343,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: Brand.border,
+    borderColor: c.border,
   },
   chipSelected: {
-    borderColor: Brand.text,
-    backgroundColor: Brand.surface,
+    borderColor: c.text,
+    backgroundColor: c.surface,
   },
   chipText: {
     fontSize: 15,
-    color: Brand.text,
+    color: c.text,
     fontWeight: '500',
   },
   chipTextSelected: {
@@ -352,7 +364,7 @@ const styles = StyleSheet.create({
   },
   guestRowBorder: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Brand.border,
+    borderTopColor: c.border,
   },
   stepper: {
     flexDirection: 'row',
@@ -363,7 +375,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     textAlign: 'center',
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   stepperButton: {
@@ -380,12 +392,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingTop: 12,
-    backgroundColor: '#F3F3F3',
+    backgroundColor: c.canvas,
   },
   clearAll: {
     fontSize: 16,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     textDecorationLine: 'underline',
   },
   searchButton: {
@@ -395,12 +407,12 @@ const styles = StyleSheet.create({
     height: 54,
     paddingHorizontal: 26,
     borderRadius: 14,
-    backgroundColor: '#E61E4D',
-    experimental_backgroundImage: 'linear-gradient(90deg, #E61E4D, #D70466)',
+    backgroundColor: c.gradientSolid,
+    experimental_backgroundImage: c.gradient,
   },
   searchButtonText: {
-    color: '#FFFFFF',
+    color: c.white,
     fontSize: 17,
     fontWeight: '700',
   },
-});
+}));

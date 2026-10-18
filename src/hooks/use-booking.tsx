@@ -1,9 +1,10 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { NIGERIA, type Country } from '@/data/countries';
 import { getListing, type Listing } from '@/data/listings';
 import { addDays, nightsBetween, todayKey } from '@/lib/dates';
 import { HOST_REPLY_SECONDS } from '@/lib/notifications';
+import { usePersistedState } from '@/hooks/use-persisted-state';
 
 export type Guests = { adults: number; children: number; infants: number; pets: number };
 export type PayMode = 'full' | 'part';
@@ -28,6 +29,7 @@ export type Trip = {
   id: string;
   listingId: string;
   status: 'pending' | 'confirmed';
+  createdAt: number;
   checkIn: string;
   checkOut: string | null;
   total: number;
@@ -62,7 +64,7 @@ type BookingContextValue = {
   setPickerCountry: (target: PickerTarget, country: Country) => void;
 
   trips: Trip[];
-  addTrip: (trip: Omit<Trip, 'id' | 'status'>) => Trip;
+  addTrip: (trip: Omit<Trip, 'id' | 'status' | 'createdAt'>) => Trip;
 
   remindersOn: boolean;
   setRemindersOn: (on: boolean) => void;
@@ -72,15 +74,30 @@ const BookingContext = createContext<BookingContextValue | null>(null);
 
 export function BookingProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
-  const [phone, setPhone] = useState<Phone | null>(null);
+  const [paymentMethods, setPaymentMethods] = usePersistedState<PaymentMethod[]>('payment-methods', []);
+  const [selectedPaymentId, setSelectedPaymentId] = usePersistedState<string | null>('selected-payment', null);
+  const [phone, setPhone] = usePersistedState<Phone | null>('phone', null);
   const [pickerCountry, setPickerCountryState] = useState<Record<PickerTarget, Country>>({
     phone: NIGERIA,
     card: NIGERIA,
   });
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [remindersOn, setRemindersOn] = useState(true);
+  const [trips, setTrips, tripsHydrated] = usePersistedState<Trip[]>('trips', []);
+  const [remindersOn, setRemindersOn] = usePersistedState('reminders-on', true);
+
+  // Pretend the host replies HOST_REPLY_SECONDS after a request, at the same moment the
+  // "accepted" notification fires. Also catches up on requests made before the app restarted.
+  useEffect(() => {
+    if (!tripsHydrated) return;
+    const timers = trips
+      .filter((t) => t.status === 'pending')
+      .map((t) =>
+        setTimeout(
+          () => setTrips((current) => current.map((c) => (c.id === t.id ? { ...c, status: 'confirmed' } : c))),
+          Math.max(0, t.createdAt + HOST_REPLY_SECONDS * 1000 - Date.now())
+        )
+      );
+    return () => timers.forEach(clearTimeout);
+  }, [trips, tripsHydrated, setTrips]);
 
   const value: BookingContextValue = {
     // Only one booking is in progress at a time; opening another listing starts fresh.
@@ -110,14 +127,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     addTrip: (trip) => {
       const listing = getListing(trip.listingId);
       const instant = listing ? isInstantBook(listing) : true;
-      const saved: Trip = { ...trip, id: `trip-${Date.now()}`, status: instant ? 'confirmed' : 'pending' };
+      const saved: Trip = { ...trip, id: `trip-${Date.now()}`, status: instant ? 'confirmed' : 'pending', createdAt: Date.now() };
       setTrips((current) => [saved, ...current]);
-      // Pretend the host replies, at the same moment the "accepted" notification fires.
-      if (!instant) {
-        setTimeout(() => {
-          setTrips((current) => current.map((t) => (t.id === saved.id ? { ...t, status: 'confirmed' } : t)));
-        }, HOST_REPLY_SECONDS * 1000);
-      }
       return saved;
     },
 

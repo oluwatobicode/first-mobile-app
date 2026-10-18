@@ -6,11 +6,11 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { CalendarMarkIcon, CheckIcon, MedalRibbonIcon, StarBoldIcon } from '@/components/icons';
 import { PaymentBadge } from '@/components/payment-badge';
 import { Button, Radio, ScreenHeader, SectionBand, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { formatPrice, getListing, placeOf, type Listing } from '@/data/listings';
 import { useAuth } from '@/hooks/use-auth';
 import { guestLabel, isInstantBook, quoteFor, splitPayment, useBooking, type PayMode } from '@/hooks/use-booking';
 import { formatLong, formatRange } from '@/lib/dates';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 export default function RequestToBookScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -20,6 +20,8 @@ export default function RequestToBookScreen() {
 }
 
 function RequestToBook({ listing }: { listing: Listing }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { draftFor, updateDraft, paymentMethods, selectedPaymentId, phone } = useBooking();
   const { user } = useAuth();
   const draft = draftFor(listing.id);
@@ -56,7 +58,7 @@ function RequestToBook({ listing }: { listing: Listing }) {
               {listing.title}
             </Text>
             <View style={styles.inline}>
-              <StarBoldIcon size={14} color={Brand.text} />
+              <StarBoldIcon size={14} color={colors.text} />
               <Text style={styles.small}>
                 {listing.rating.toFixed(2)} <Text style={styles.muted}>({listing.reviews})</Text>
               </Text>
@@ -197,7 +199,7 @@ function RequestToBook({ listing }: { listing: Listing }) {
           <>
             <SectionBand />
             <View style={[styles.section, styles.row, { alignItems: 'flex-start', gap: 18 }]}>
-              <CalendarMarkIcon size={36} color={Brand.primary} />
+              <CalendarMarkIcon size={36} color={colors.primary} />
               <Text style={[styles.body, { flex: 1 }]}>
                 <Text style={styles.label}>
                   Your reservation won’t be confirmed until the Host accepts your request (within 24 hours).
@@ -224,6 +226,7 @@ function RequestToBook({ listing }: { listing: Listing }) {
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -233,6 +236,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function EditRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.row}>
       <View style={{ flex: 1, gap: 4 }}>
@@ -245,6 +249,7 @@ function EditRow({ label, value, onEdit }: { label: string; value: string; onEdi
 }
 
 function PriceRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  const styles = useStyles();
   return (
     <View style={styles.row}>
       <Text style={[styles.body, { flex: 1 }, bold && styles.label]}>{label}</Text>
@@ -254,23 +259,25 @@ function PriceRow({ label, value, bold }: { label: string; value: string; bold?:
 }
 
 function ActionRow({ title, body, action, onPress }: { title: string; body: string; action: string; onPress: () => void }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <View style={[styles.row, { alignItems: 'flex-start' }]}>
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={styles.label}>{title}</Text>
         <Text style={styles.body}>{body}</Text>
       </View>
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.outlineButton, pressed && { backgroundColor: Brand.surface }]}>
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.outlineButton, pressed && { backgroundColor: colors.surface }]}>
         <Text style={styles.outlineButtonText}>{action}</Text>
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   section: {
     paddingHorizontal: 24,
@@ -279,7 +286,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     marginBottom: 20,
   },
   summary: {
@@ -295,7 +302,7 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 16,
     lineHeight: 21,
-    color: Brand.text,
+    color: c.text,
   },
   inline: {
     flexDirection: 'row',
@@ -311,20 +318,20 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   body: {
     fontSize: 16,
     lineHeight: 23,
-    color: Brand.text,
+    color: c.text,
   },
   small: {
     fontSize: 13,
-    color: Brand.text,
+    color: c.text,
   },
   muted: {
     fontSize: 13,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   payOption: {
     flexDirection: 'row',
@@ -333,7 +340,7 @@ const styles = StyleSheet.create({
   },
   rule: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Brand.border,
+    backgroundColor: c.border,
   },
   inlineLink: {
     textDecorationLine: 'underline',
@@ -348,7 +355,7 @@ const styles = StyleSheet.create({
   legal: {
     fontSize: 13,
     lineHeight: 19,
-    color: Brand.text,
+    color: c.text,
   },
   legalLink: {
     fontWeight: '600',
@@ -359,11 +366,11 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Brand.text,
+    borderColor: c.text,
   },
   outlineButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
-});
+}));

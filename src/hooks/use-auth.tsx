@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
 import { NIGERIA, type Country } from '@/data/countries';
+import { usePersistedState } from '@/hooks/use-persisted-state';
 
 export type User = {
   id: string;
@@ -43,8 +44,8 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [accounts, setAccounts] = useState<User[]>([DEMO_ACCOUNT]);
-  const [user, setUser] = useState<User | null>(null);
+  const [accounts, setAccounts] = usePersistedState<User[]>('accounts', [DEMO_ACCOUNT]);
+  const [user, setUser] = usePersistedState<User | null>('user', null);
   const [pending, setPending] = useState<PendingLogin | null>(null);
 
   const value: AuthContextValue = {

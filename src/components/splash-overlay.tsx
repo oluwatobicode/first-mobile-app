@@ -12,9 +12,11 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { HomeSmileBoldIcon } from '@/components/icons';
-import { Brand } from '@/constants/theme';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 export function SplashOverlay() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const [visible, setVisible] = useState(true);
   const logoScale = useSharedValue(0.6);
   const logoOpacity = useSharedValue(0);
@@ -49,18 +51,18 @@ export function SplashOverlay() {
   return (
     <Animated.View style={[styles.overlay, overlayStyle]} onLayout={start} pointerEvents="none">
       <Animated.View style={logoStyle}>
-        <HomeSmileBoldIcon size={88} color={Brand.primary} />
+        <HomeSmileBoldIcon size={88} color={colors.primary} />
       </Animated.View>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
-});
+}));

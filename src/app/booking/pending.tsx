@@ -1,25 +1,29 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { z } from 'zod';
 
+import { Confetti } from '@/components/confetti';
 import { TextField } from '@/components/form/text-field';
 import { FormView } from '@/components/form-view';
 import { UploadIcon } from '@/components/icons';
 import { Button, ScreenHeader, SectionBand, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { formatPrice, getListing } from '@/data/listings';
 import { useBooking } from '@/hooks/use-booking';
 import { formatRange } from '@/lib/dates';
 import { shareSchema, type ShareForm } from '@/lib/validation';
+import { createStyles } from '@/hooks/use-theme';
 
 const MAX_EMAILS = 5;
 const isEmail = (value: string) => z.email().safeParse(value.trim()).success;
 
 export default function PendingScreen() {
+  const styles = useStyles();
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { trips } = useBooking();
   const trip = trips.find((t) => t.id === tripId);
@@ -32,6 +36,13 @@ export default function PendingScreen() {
   });
   const { fields, append } = useFieldArray({ control, name: 'emails' });
   const emails = useWatch({ control, name: 'emails' });
+
+  const confirmed = trip?.status === 'confirmed';
+
+  // Celebrate when the stay is confirmed: right away for instant bookings, or when the host accepts.
+  useEffect(() => {
+    if (confirmed && Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [confirmed]);
 
   if (!trip || !listing) return null;
 
@@ -104,11 +115,12 @@ export default function PendingScreen() {
           </View>
         </View>
       </ScrollView>
+      {confirmed && <Confetti key={trip.id} />}
     </FormView>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   summary: {
     flexDirection: 'row',
     gap: 16,
@@ -123,11 +135,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 23,
     fontWeight: '500',
-    color: Brand.text,
+    color: c.text,
   },
   small: {
     fontSize: 14,
-    color: Brand.text,
+    color: c.text,
   },
   section: {
     padding: 24,
@@ -136,12 +148,12 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   body: {
     fontSize: 16,
     lineHeight: 22,
-    color: Brand.text,
+    color: c.text,
   },
   actions: {
     flexDirection: 'row',
@@ -149,4 +161,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
   },
-});
+}));

@@ -1,16 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { TextField } from '@/components/form/text-field';
 import { FormView } from '@/components/form-view';
 import { Button, FooterBar, ScreenHeader, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { DEMO_LOGIN, exitAuth, useAuth } from '@/hooks/use-auth';
 import { passwordSchema, type PasswordForm } from '@/lib/validation';
+import { createStyles } from '@/hooks/use-theme';
 
 export default function PasswordScreen() {
+  const styles = useStyles();
   const { pending, findByEmail, signIn } = useAuth();
   const [visible, setVisible] = useState(false);
   const { control, handleSubmit, setError } = useForm<PasswordForm>({
@@ -68,7 +69,7 @@ export default function PasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   content: {
     flex: 1,
     padding: 24,
@@ -77,17 +78,17 @@ const styles = StyleSheet.create({
   welcome: {
     fontSize: 24,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
   },
   email: {
     marginTop: -10,
     fontSize: 15,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   toggle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     textDecorationLine: 'underline',
   },
-});
+}));

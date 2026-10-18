@@ -1,13 +1,16 @@
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SolarProvider } from '@solar-icons/react-native/lib/SolarProvider';
-import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
 import { SplashOverlay } from '@/components/splash-overlay';
-import { Brand } from '@/constants/theme';
 import { AuthProvider } from '@/hooks/use-auth';
 import { BookingProvider } from '@/hooks/use-booking';
+import { FiltersProvider } from '@/hooks/use-filters';
+import { MessagesProvider } from '@/hooks/use-messages';
 import { useNotificationObserver } from '@/hooks/use-notification-observer';
+import { AppThemeProvider, useTheme } from '@/hooks/use-theme';
 import { WishlistProvider } from '@/hooks/use-wishlist';
 
 SplashScreen.preventAutoHideAsync();
@@ -23,16 +26,31 @@ const sheet = (detent: number) => ({
 });
 
 export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppThemeProvider>
+        <FiltersProvider>
+          <ThemedApp />
+        </FiltersProvider>
+      </AppThemeProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+function ThemedApp() {
   useNotificationObserver();
+  const { scheme, colors } = useTheme();
+  const navigationTheme = scheme === 'dark' ? DarkTheme : DefaultTheme;
 
   return (
-    <ThemeProvider value={DefaultTheme}>
-      <SolarProvider color={Brand.text} size={24} strokeWidth={1.5}>
+    <ThemeProvider value={{ ...navigationTheme, colors: { ...navigationTheme.colors, background: colors.background, card: colors.background, text: colors.text, border: colors.border, primary: colors.primary } }}>
+      <SolarProvider color={colors.text} size={24} strokeWidth={1.5}>
         <AuthProvider>
         <WishlistProvider>
           <BookingProvider>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Brand.background } }}>
+          <MessagesProvider>
+            <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="listing/[id]" />
               <Stack.Screen name="search" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
@@ -49,8 +67,19 @@ export default function RootLayout() {
               <Stack.Screen name="booking/processing" options={{ animation: 'fade', gestureEnabled: false }} />
               <Stack.Screen name="booking/pending" options={{ animation: 'fade', gestureEnabled: false }} />
               <Stack.Screen name="booking/things-to-do" />
+
+              <Stack.Screen name="filters" options={sheet(0.9)} />
+              <Stack.Screen name="map" options={{ presentation: 'fullScreenModal' }} />
+              <Stack.Screen name="discover" options={{ presentation: 'fullScreenModal' }} />
+              <Stack.Screen
+                name="gallery"
+                options={{ presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }}
+              />
+              <Stack.Screen name="surprise" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="chat/[tripId]" />
             </Stack>
             <SplashOverlay />
+          </MessagesProvider>
           </BookingProvider>
         </WishlistProvider>
         </AuthProvider>

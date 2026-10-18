@@ -1,10 +1,12 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { HeartButton } from '@/components/heart-button';
-import { Brand } from '@/constants/theme';
+import { Skeleton } from '@/components/skeleton';
 import { cardPriceLabel, type Listing } from '@/data/listings';
+import { createStyles } from '@/hooks/use-theme';
 
 type Props = {
   listing: Listing;
@@ -12,11 +14,20 @@ type Props = {
 };
 
 export function ListingCard({ listing, width }: Props) {
+  const styles = useStyles();
+  const [loaded, setLoaded] = useState(false);
   return (
     <Link href={{ pathname: '/listing/[id]', params: { id: listing.id } }} asChild>
       <Pressable style={({ pressed }) => [{ width }, pressed && styles.pressed]}>
         <View style={[styles.photoWrap, { height: width * 0.95 }]}>
-          <Image source={listing.images[0]} style={styles.photo} contentFit="cover" transition={250} />
+          {!loaded && <Skeleton style={StyleSheet.absoluteFill} />}
+          <Image
+            source={listing.images[0]}
+            style={styles.photo}
+            contentFit="cover"
+            transition={250}
+            onLoad={() => setLoaded(true)}
+          />
           {listing.guestFavorite && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>Guest favorite</Text>
@@ -38,7 +49,7 @@ export function ListingCard({ listing, width }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   pressed: {
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
@@ -47,7 +58,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderCurve: 'continuous',
     overflow: 'hidden',
-    backgroundColor: Brand.surface,
+    backgroundColor: c.surface,
   },
   photo: {
     flex: 1,
@@ -56,7 +67,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: c.overlayButton,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
@@ -65,7 +76,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   heart: {
     position: 'absolute',
@@ -76,11 +87,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 15,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   meta: {
     marginTop: 2,
     fontSize: 14,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
-});
+}));

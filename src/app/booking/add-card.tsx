@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useForm, useWatch } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { FieldGroup, GroupDivider, TextField } from '@/components/form/text-field';
 import { FormView } from '@/components/form-view';
@@ -9,12 +9,14 @@ import { AltArrowDownIcon, LockBoldIcon } from '@/components/icons';
 import { KEYBOARD_BAR_ID, KeyboardBar } from '@/components/keyboard-bar';
 import { BrandMark, detectBrand, GenericCardIcon } from '@/components/payment-badge';
 import { Button, ScreenHeader, TextLink } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { useBooking } from '@/hooks/use-booking';
 import { formatCardNumber, formatExpiry, onlyDigits } from '@/lib/format';
 import { cardSchema, type CardForm } from '@/lib/validation';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 export default function AddCardScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { addPaymentMethod, pickerCountry } = useBooking();
   const { control, handleSubmit, setFocus, formState } = useForm<CardForm>({
     resolver: zodResolver(cardSchema),
@@ -66,7 +68,7 @@ export default function AddCardScreen() {
             autoFocus
             trailing={
               <View style={styles.trailing}>
-                <LockBoldIcon size={14} color={Brand.textSecondary} />
+                <LockBoldIcon size={14} color={colors.textSecondary} />
                 {digits.length >= 2 ? <BrandMark brand={brand} scale={1.2} /> : <GenericCardIcon />}
               </View>
             }
@@ -137,7 +139,7 @@ export default function AddCardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   content: {
     padding: 24,
     gap: 18,
@@ -166,17 +168,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#B0B0B0',
+    borderColor: c.inputBorder,
     borderRadius: 12,
   },
   label: {
     fontSize: 12,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   fieldValue: {
     marginTop: 2,
     fontSize: 17,
-    color: Brand.text,
+    color: c.text,
   },
   actions: {
     flexDirection: 'row',
@@ -184,4 +186,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 12,
   },
-});
+}));

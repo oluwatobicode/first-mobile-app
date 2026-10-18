@@ -4,8 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CardIcon, CheckIcon, SmartphoneIcon, WalletIcon, type SolarIcon } from '@/components/icons';
 import { PaymentBadge } from '@/components/payment-badge';
 import { ScreenHeader } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { useBooking, type PaymentMethod } from '@/hooks/use-booking';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 const OTHER_METHODS: { kind: PaymentMethod['kind']; label: string; Icon: SolarIcon }[] = [
   { kind: 'bank', label: 'Bank transfer', Icon: WalletIcon },
@@ -13,6 +13,8 @@ const OTHER_METHODS: { kind: PaymentMethod['kind']; label: string; Icon: SolarIc
 ];
 
 export default function PayWithSheet() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { paymentMethods, selectedPaymentId, selectPayment, addPaymentMethod } = useBooking();
 
   return (
@@ -37,7 +39,7 @@ export default function PayWithSheet() {
 
         <Pressable style={[styles.row, styles.rowBorder]} onPress={() => router.push('/booking/add-card')}>
           <View style={styles.iconFrame}>
-            <CardIcon size={30} color={Brand.textSecondary} />
+            <CardIcon size={30} color={colors.textSecondary} />
           </View>
           <Text style={styles.label}>Credit or debit card</Text>
         </Pressable>
@@ -51,7 +53,7 @@ export default function PayWithSheet() {
               router.back();
             }}>
             <View style={styles.iconFrame}>
-              <Icon size={26} color={Brand.textSecondary} />
+              <Icon size={26} color={colors.textSecondary} />
             </View>
             <Text style={styles.label}>{label}</Text>
           </Pressable>
@@ -61,10 +63,10 @@ export default function PayWithSheet() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   content: {
     paddingHorizontal: 24,
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Brand.border,
+    borderBottomColor: c.border,
   },
   iconFrame: {
     width: 52,
@@ -86,13 +88,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 17,
-    color: Brand.text,
+    color: c.text,
   },
   caption: {
     marginTop: 16,
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.4,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
-});
+}));

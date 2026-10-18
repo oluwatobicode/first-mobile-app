@@ -4,14 +4,15 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { EmptyState, TabScreen } from '@/components/tab-screen';
-import { Brand } from '@/constants/theme';
 import { getListing, LISTINGS, placeOf, type Listing } from '@/data/listings';
 import { useBooking, type Trip } from '@/hooks/use-booking';
 import { fromKey } from '@/lib/dates';
+import { createStyles } from '@/hooks/use-theme';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function TripsScreen() {
+  const styles = useStyles();
   const { trips } = useBooking();
   const upcoming = trips
     .map((trip) => ({ trip, listing: getListing(trip.listingId) }))
@@ -71,6 +72,7 @@ export default function TripsScreen() {
 }
 
 function ReservationCard({ trip, listing }: { trip: Trip; listing: Listing }) {
+  const styles = useStyles();
   const { kind, place, city } = placeOf(listing);
   const [region, country] = place.split(', ');
   const start = fromKey(trip.checkIn);
@@ -112,17 +114,17 @@ function ReservationCard({ trip, listing }: { trip: Trip; listing: Listing }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   heading: {
     fontSize: 24,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     marginBottom: 20,
   },
   card: {
     borderRadius: 16,
     borderCurve: 'continuous',
-    backgroundColor: Brand.background,
+    backgroundColor: c.elevated,
     boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
     overflow: 'hidden',
   },
@@ -136,12 +138,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   badgeText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
   cardBody: {
     padding: 24,
@@ -149,17 +151,17 @@ const styles = StyleSheet.create({
   city: {
     fontSize: 30,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.5,
   },
   cardSubtitle: {
     marginTop: 6,
     fontSize: 16,
-    color: Brand.text,
+    color: c.text,
   },
   rule: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Brand.border,
+    backgroundColor: c.border,
     marginVertical: 20,
   },
   cardFooter: {
@@ -170,29 +172,29 @@ const styles = StyleSheet.create({
   dateBlock: {
     paddingRight: 20,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: Brand.border,
+    borderRightColor: c.border,
   },
   dateMonth: {
     fontSize: 20,
-    color: Brand.text,
+    color: c.text,
   },
   dateDays: {
     fontSize: 20,
-    color: Brand.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
   },
   dateYear: {
     fontSize: 15,
-    color: Brand.text,
+    color: c.text,
   },
   place: {
     fontSize: 19,
-    color: Brand.text,
+    color: c.text,
   },
   muted: {
     marginTop: 4,
     fontSize: 14,
-    color: Brand.textSecondary,
+    color: c.textSecondary,
   },
   nearby: {
     width: 260,
@@ -208,6 +210,6 @@ const styles = StyleSheet.create({
   nearbyTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
   },
-});
+}));

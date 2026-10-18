@@ -1,18 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useController, useForm } from 'react-hook-form';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { FieldMessage } from '@/components/form/text-field';
 import { FormView } from '@/components/form-view';
 import { KEYBOARD_BAR_ID, KeyboardBar } from '@/components/keyboard-bar';
 import { Button, FooterBar, ScreenHeader } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { useBooking } from '@/hooks/use-booking';
 import { formatPhone } from '@/lib/format';
 import { phoneSchema, type PhoneForm } from '@/lib/validation';
+import { createStyles } from '@/hooks/use-theme';
 
 export default function PhoneScreen() {
+  const styles = useStyles();
   const { pickerCountry, setPhone } = useBooking();
   const country = pickerCountry.phone;
 
@@ -71,7 +72,7 @@ export default function PhoneScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   content: {
     flex: 1,
     paddingHorizontal: 24,
@@ -81,21 +82,21 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 38,
     fontWeight: '800',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.8,
   },
   subtitle: {
     marginTop: 12,
     fontSize: 18,
     lineHeight: 25,
-    color: Brand.text,
+    color: c.text,
   },
   caption: {
     marginTop: 44,
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.4,
-    color: Brand.text,
+    color: c.text,
   },
   inputRow: {
     flexDirection: 'row',
@@ -104,28 +105,28 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Brand.border,
+    borderBottomColor: c.border,
   },
   inputRowError: {
-    borderBottomColor: '#C13515',
+    borderBottomColor: c.error,
   },
   dial: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 4,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: c.surface,
   },
   dialText: {
     fontSize: 16,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
   },
   input: {
     flex: 1,
     fontSize: 30,
     fontWeight: '500',
-    color: Brand.text,
+    color: c.text,
     fontVariant: ['tabular-nums'],
     paddingVertical: 4,
   },
-});
+}));

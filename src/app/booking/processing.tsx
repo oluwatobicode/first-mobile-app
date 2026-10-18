@@ -1,19 +1,21 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { BanknoteIcon, HomeSmileIcon } from '@/components/icons';
 import { Particles, PulseRing } from '@/components/particles';
 import { Button, FooterBar, ScreenHeader } from '@/components/ui';
-import { Brand } from '@/constants/theme';
 import { getListing } from '@/data/listings';
 import { guestCount, isInstantBook, quoteFor, useBooking } from '@/hooks/use-booking';
 import { notifyTripBooked } from '@/lib/notifications';
+import { createStyles, useTheme } from '@/hooks/use-theme';
 
 type Phase = 'preparing' | 'bank' | 'moment' | 'failed';
 
 export default function ProcessingScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { draftFor, paymentMethods, selectedPaymentId, addTrip, remindersOn } = useBooking();
   const payment = paymentMethods.find((m) => m.id === selectedPaymentId);
@@ -103,7 +105,7 @@ export default function ProcessingScreen() {
       <Particles key={phase} />
       <View style={styles.center}>
         <Animated.View key={phase} entering={FadeIn.duration(400)} style={{ alignItems: 'center', gap: 28 }}>
-          {phase === 'preparing' ? <HomeSmileIcon size={64} color={Brand.primary} strokeWidth={1.6} /> : <MoneyIcon />}
+          {phase === 'preparing' ? <HomeSmileIcon size={64} color={colors.primary} strokeWidth={1.6} /> : <MoneyIcon />}
           <Text style={styles.loadingTitle}>{phase === 'preparing' ? 'We’re getting your trip ready' : 'One moment please'}</Text>
         </Animated.View>
       </View>
@@ -112,17 +114,19 @@ export default function ProcessingScreen() {
 }
 
 function MoneyIcon() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <View style={styles.money}>
-      <BanknoteIcon size={60} color={Brand.primary} strokeWidth={1.4} />
+      <BanknoteIcon size={60} color={colors.primary} strokeWidth={1.4} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createStyles((c) => ({
   screen: {
     flex: 1,
-    backgroundColor: Brand.background,
+    backgroundColor: c.background,
   },
   center: {
     flex: 1,
@@ -134,7 +138,7 @@ const styles = StyleSheet.create({
   loadingTitle: {
     fontSize: 26,
     fontWeight: '600',
-    color: Brand.text,
+    color: c.text,
     textAlign: 'center',
     letterSpacing: -0.4,
   },
@@ -147,20 +151,20 @@ const styles = StyleSheet.create({
   money: {
     padding: 6,
     borderRadius: 10,
-    backgroundColor: '#FBE4EC',
+    backgroundColor: 'rgba(255,56,92,0.14)',
   },
   bankTitle: {
     fontSize: 28,
     lineHeight: 34,
     fontWeight: '700',
-    color: Brand.text,
+    color: c.text,
     textAlign: 'center',
     letterSpacing: -0.5,
   },
   body: {
     fontSize: 17,
     lineHeight: 24,
-    color: Brand.text,
+    color: c.text,
   },
   centered: {
     textAlign: 'center',
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     fontWeight: '800',
-    color: Brand.text,
+    color: c.text,
     letterSpacing: -0.6,
   },
-});
+}));
