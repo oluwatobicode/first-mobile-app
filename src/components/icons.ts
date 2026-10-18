@@ -1,0 +1,56 @@
+// Solar icons (https://solar-icons.vercel.app), imported one file at a time to keep the bundle small.
+
+export { MagnifierIcon } from '@solar-icons/react-native/linear/magnifier';
+export { HeartIcon } from '@solar-icons/react-native/linear/heart';
+export { SuitcaseIcon } from '@solar-icons/react-native/linear/suitcase';
+export { ChatRoundDotsIcon } from '@solar-icons/react-native/linear/chat-round-dots';
+export { UserCircleIcon } from '@solar-icons/react-native/linear/user-circle';
+export { AltArrowLeftIcon } from '@solar-icons/react-native/linear/alt-arrow-left';
+export { AltArrowRightIcon } from '@solar-icons/react-native/linear/alt-arrow-right';
+export { AltArrowDownIcon } from '@solar-icons/react-native/linear/alt-arrow-down';
+export { AltArrowUpIcon } from '@solar-icons/react-native/linear/alt-arrow-up';
+export { CloseIcon } from '@solar-icons/react-native/linear/close';
+export { UploadIcon } from '@solar-icons/react-native/linear/upload';
+export { CheckIcon } from '@solar-icons/react-native/linear/check';
+export { StarIcon } from '@solar-icons/react-native/linear/star';
+export { BedIcon } from '@solar-icons/react-native/linear/bed';
+export { BathIcon } from '@solar-icons/react-native/linear/bath';
+export { UsersGroupRoundedIcon } from '@solar-icons/react-native/linear/users-group-rounded';
+export { HomeSmileIcon } from '@solar-icons/react-native/linear/home-smile';
+export { LockIcon } from '@solar-icons/react-native/linear/lock';
+export { DangerCircleIcon } from '@solar-icons/react-native/linear/danger-circle';
+export { CardIcon } from '@solar-icons/react-native/linear/card';
+export { BanknoteIcon } from '@solar-icons/react-native/linear/banknote';
+export { MapPointIcon } from '@solar-icons/react-native/linear/map-point';
+export { WaterIcon } from '@solar-icons/react-native/linear/water';
+export { BuildingsIcon } from '@solar-icons/react-native/linear/buildings';
+export { ChefHatIcon } from '@solar-icons/react-native/linear/chef-hat';
+export { LeafIcon } from '@solar-icons/react-native/linear/leaf';
+export { WiFiIcon } from '@solar-icons/react-native/linear/wi-fi';
+export { BoltIcon } from '@solar-icons/react-native/linear/bolt';
+export { SnowflakeIcon } from '@solar-icons/react-native/linear/snowflake';
+export { CarIcon } from '@solar-icons/react-native/linear/car';
+export { SettingsIcon } from '@solar-icons/react-native/linear/settings';
+export { BellIcon } from '@solar-icons/react-native/linear/bell';
+export { GlobalIcon } from '@solar-icons/react-native/linear/global';
+export { QuestionCircleIcon } from '@solar-icons/react-native/linear/question-circle';
+export { HomeIcon } from '@solar-icons/react-native/linear/home';
+export { AddIcon } from '@solar-icons/react-native/linear/add';
+export { MinusIcon } from '@solar-icons/react-native/linear/minus';
+export { LetterIcon } from '@solar-icons/react-native/linear/letter';
+export { MedalRibbonIcon } from '@solar-icons/react-native/linear/medal-ribbon';
+export { CalendarMarkIcon } from '@solar-icons/react-native/linear/calendar-mark';
+export { ClockCircleIcon } from '@solar-icons/react-native/linear/clock-circle';
+export { WalletIcon } from '@solar-icons/react-native/linear/wallet';
+export { SmartphoneIcon } from '@solar-icons/react-native/linear/smartphone';
+export { TagIcon } from '@solar-icons/react-native/linear/tag';
+export { Translation2Icon } from '@solar-icons/react-native/linear/translation-2';
+
+export { HeartIcon as HeartBoldIcon } from '@solar-icons/react-native/bold/heart';
+export { StarIcon as StarBoldIcon } from '@solar-icons/react-native/bold/star';
+export { HomeSmileIcon as HomeSmileBoldIcon } from '@solar-icons/react-native/bold/home-smile';
+export { LockIcon as LockBoldIcon } from '@solar-icons/react-native/bold/lock';
+export { CheckCircleIcon as CheckCircleBoldIcon } from '@solar-icons/react-native/bold/check-circle';
+export { MedalRibbonIcon as MedalRibbonBoldIcon } from '@solar-icons/react-native/bold/medal-ribbon';
+
+export type { Icon as SolarIcon } from '@solar-icons/react-native/lib/types';
