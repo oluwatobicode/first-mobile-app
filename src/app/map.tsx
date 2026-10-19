@@ -177,7 +177,7 @@ export default function MapScreen() {
               </Text>
             </View>
             <View style={styles.heart}>
-              <HeartButton listingId={selected.id} size={22} variant="plain" />
+              <HeartButton listingId={selected.id} size={22} variant="plain" toastOffset={170} />
             </View>
           </Pressable>
         </Animated.View>

@@ -39,6 +39,8 @@ type AuthContextValue = {
   signIn: (user: User) => void;
   register: (user: Omit<User, 'id'>) => User;
   signOut: () => void;
+  /** Change the signed-in person's details (name, email, phone, password…); saved to their account too. */
+  updateUser: (patch: Partial<Omit<User, 'id'>>) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -65,6 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return account;
     },
     signOut: () => setUser(null),
+    updateUser: (patch) => {
+      if (!user) return;
+      const next = { ...user, ...patch };
+      setUser(next);
+      setAccounts((current) => current.map((a) => (a.id === next.id ? { ...a, ...patch } : a)));
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

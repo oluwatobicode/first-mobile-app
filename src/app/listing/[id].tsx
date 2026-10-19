@@ -1,21 +1,35 @@
+import { ClipboardListIcon } from '@solar-icons/react-native/linear/clipboard-list';
+import { ShieldCheckIcon } from '@solar-icons/react-native/linear/shield-check';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState, type ReactNode } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
+import { Alert, FlatList, Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedReaction,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { HeartButton } from '@/components/heart-button';
 import {
   AltArrowLeftIcon,
+  AltArrowRightIcon,
   BathIcon,
   BedIcon,
   BoltIcon,
+  CalendarMarkIcon,
   CarIcon,
   ChefHatIcon,
   ClockCircleIcon,
   LeafIcon,
   MedalRibbonIcon,
-  SnowflakeIcon,
   StarBoldIcon,
   StarIcon,
   UploadIcon,
@@ -24,19 +38,22 @@ import {
   WiFiIcon,
   type SolarIcon,
 } from '@/components/icons';
+import { amenityCount, highlightAmenities } from '@/components/listing/amenity-catalog';
+import { HostCard } from '@/components/listing/host-card';
+import { LocationMap } from '@/components/listing/location-map';
+import { OutlineButton } from '@/components/listing/outline-button';
+import { CATEGORY_ICONS, RatingBars, RatingHeading, ReviewCard, useListingReviews } from '@/components/listing/reviews';
 import { Button, FooterBar, TextLink } from '@/components/ui';
+import { bedroomsFor, neighbourhoodFor, ratingBreakdown, rulesFor, SAFETY } from '@/data/details';
 import { formatPrice, getListing, placeOf, type Listing } from '@/data/listings';
 import { isNightly, quoteFor, useBooking } from '@/hooks/use-booking';
-import { formatRange } from '@/lib/dates';
+import { addDays, formatRange, formatLong } from '@/lib/dates';
 import { createStyles, useTheme } from '@/hooks/use-theme';
+import { useWishlist } from '@/hooks/use-wishlist';
 
-const AMENITIES: { Icon: SolarIcon; label: string }[] = [
-  { Icon: WiFiIcon, label: 'Fast wifi – 120 Mbps' },
-  { Icon: BoltIcon, label: '24/7 power backup' },
-  { Icon: SnowflakeIcon, label: 'Air conditioning' },
-  { Icon: ChefHatIcon, label: 'Kitchen' },
-  { Icon: CarIcon, label: 'Free parking on premises' },
-];
+const HEADER_BAR = 56;
+const REVIEW_CARD = 300;
+const GAP = 12;
 
 const FEATURE_ICONS: [RegExp, SolarIcon][] = [
   [/bed/i, BedIcon],
@@ -74,24 +91,83 @@ export default function ListingScreen() {
 
 function ListingDetails({ listing }: { listing: Listing }) {
   const styles = useStyles();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [photoIndex, setPhotoIndex] = useState(0);
-  const { draftFor } = useBooking();
+  const [pastPhotos, setPastPhotos] = useState(false);
+  const [areaExpanded, setAreaExpanded] = useState(false);
+  const { draftFor, trips } = useBooking();
+  const { markViewed } = useWishlist();
+  const { reviews, total } = useListingReviews(listing);
 
   const draft = draftFor(listing.id);
   const quote = quoteFor(draft);
   const { kind, place } = placeOf(listing);
   const nightly = isNightly(listing);
   const photoHeight = width * 0.8;
+  const breakdown = ratingBreakdown(listing);
+  const rules = rulesFor(listing);
+  const amenities = highlightAmenities(listing);
+  const isHome = listing.category === 'homes';
+
+  // markViewed changes identity on every provider render, so it must not be an effect dependency.
+  const recordView = useEffectEvent(() => markViewed(listing.id));
+  useEffect(() => {
+    recordView();
+  }, [listing.id]);
+
+  // The header bar finishes fading in exactly when the photos slide under it.
+  const scrollY = useSharedValue(0);
+  const threshold = photoHeight - insets.top - HEADER_BAR;
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.set(e.contentOffset.y);
+  });
+  useAnimatedReaction(
+    () => scrollY.value > threshold,
+    (past, previous) => {
+      if (past !== previous) scheduleOnRN(setPastPhotos, past);
+    }
+  );
+  const barStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [threshold - 80, threshold], [0, 1], Extrapolation.CLAMP),
+  }));
+  const titleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [threshold, threshold + 40], [0, 1], Extrapolation.CLAMP),
+    transform: [{ translateY: interpolate(scrollY.value, [threshold, threshold + 40], [6, 0], Extrapolation.CLAMP) }],
+  }));
 
   const openDates = () => router.push({ pathname: '/dates', params: { id: listing.id } });
   const reserve = () => (quote ? router.push({ pathname: '/booking', params: { id: listing.id } }) : openDates());
+  const openReviews = () => router.push({ pathname: '/reviews', params: { id: listing.id } });
+  const openInfo = (section: 'rules' | 'safety' | 'cancellation') =>
+    router.push({ pathname: '/listing-info', params: { id: listing.id, section } });
+
+  const messageHost = () => {
+    const forListing = trips.filter((t) => t.listingId === listing.id);
+    const trip = forListing.find((t) => t.status !== 'cancelled') ?? forListing[0];
+    if (trip) {
+      router.push({ pathname: '/chat/[tripId]', params: { tripId: trip.id } });
+      return;
+    }
+    Alert.alert(`Book first to message ${listing.host.name}`, `Once you request a booking, you can chat with ${listing.host.name} right here.`, [
+      { text: 'Not now', style: 'cancel' },
+      { text: nightly ? 'Choose dates' : 'Reserve', onPress: reserve },
+    ]);
+  };
+
+  const cancellationSummary = draft.checkIn
+    ? `Free cancellation before ${formatLong(addDays(draft.checkIn, -7))}`
+    : 'Free cancellation up to 7 days before check-in';
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <StatusBar style={pastPhotos ? (scheme === 'dark' ? 'light' : 'dark') : 'light'} />
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}>
         <View style={{ height: photoHeight }}>
           <ScrollView
             horizontal
@@ -108,11 +184,16 @@ function ListingDetails({ listing }: { listing: Listing }) {
               </Pressable>
             ))}
           </ScrollView>
-          <View style={styles.counter}>
+          <Pressable
+            style={({ pressed }) => [styles.counter, pressed && { transform: [{ scale: 0.95 }] }]}
+            onPress={() => router.push({ pathname: '/photo-tour', params: { id: listing.id } })}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Show all photos">
             <Text style={styles.counterText}>
               {photoIndex + 1} / {listing.images.length}
             </Text>
-          </View>
+          </Pressable>
         </View>
 
         <View style={styles.body}>
@@ -121,7 +202,9 @@ function ListingDetails({ listing }: { listing: Listing }) {
           <View style={styles.metaRow}>
             <StarBoldIcon size={16} color={colors.text} />
             <Text style={styles.meta}>{listing.rating.toFixed(2)} · </Text>
-            <Text style={[styles.meta, styles.underline]}>{listing.reviews} reviews</Text>
+            <Pressable onPress={openReviews} hitSlop={6}>
+              <Text style={[styles.meta, styles.underline]}>{total} reviews</Text>
+            </Pressable>
             {listing.host.superhost && (
               <>
                 <Text style={styles.meta}> · </Text>
@@ -144,13 +227,13 @@ function ListingDetails({ listing }: { listing: Listing }) {
               </View>
               {listing.host.superhost && (
                 <View style={styles.superhostBadge}>
-                  <MedalRibbonIcon size={12} color="#FFFFFF" strokeWidth={2} />
+                  <MedalRibbonIcon size={12} color={colors.white} strokeWidth={2} />
                 </View>
               )}
             </View>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.features} style={styles.featuresScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.bleed}>
             {listing.details.split(' · ').map((label) => {
               const Icon = featureIcon(label);
               return (
@@ -170,33 +253,128 @@ function ListingDetails({ listing }: { listing: Listing }) {
             trip. Check-in is self-service, and {listing.host.name} usually replies within an hour.
           </Text>
 
+          {isHome && (
+            <>
+              <View style={styles.rule} />
+              <Text style={styles.sectionTitle}>Where you’ll sleep</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rail} style={styles.bleed}>
+                {bedroomsFor(listing).map((room, i) => (
+                  <View key={room.name + i} style={styles.room}>
+                    <Image source={listing.images[i % listing.images.length]} style={styles.roomPhoto} contentFit="cover" transition={200} />
+                    <Text style={styles.roomName}>{room.name}</Text>
+                    <Text style={styles.roomBeds}>{room.beds}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </>
+          )}
+
           {nightly && (
             <>
               <View style={styles.rule} />
               <Text style={styles.sectionTitle}>What this place offers</Text>
-              {AMENITIES.map(({ Icon, label }) => (
+              {amenities.map(({ Icon, label }) => (
                 <View key={label} style={styles.amenity}>
                   <Icon size={26} />
                   <Text style={styles.paragraph}>{label}</Text>
                 </View>
               ))}
+              <OutlineButton
+                label={`Show all ${amenityCount(listing)} amenities`}
+                onPress={() => router.push({ pathname: '/amenities', params: { id: listing.id } })}
+                style={styles.sectionButton}
+              />
             </>
           )}
-        </View>
-      </ScrollView>
 
-      <View style={[styles.topButtons, { top: insets.top + 8 }]}>
-        <RoundButton label="Go back" onPress={() => router.back()}>
-          <AltArrowLeftIcon size={22} strokeWidth={2} />
-        </RoundButton>
-        <View style={styles.topRight}>
-          <RoundButton
-            label="Share"
-            onPress={() => Share.share({ message: `Check out "${listing.title}" – ${formatPrice(listing.price)} ${listing.priceNote}` })}>
-            <UploadIcon size={22} strokeWidth={2} />
+          <View style={styles.rule} />
+
+          <RatingHeading listing={listing} total={total} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scores} style={styles.bleed}>
+            <View style={[styles.score, { width: 130 }]}>
+              <Text style={styles.scoreLabel}>Overall rating</Text>
+              <RatingBars stars={breakdown.stars} />
+            </View>
+            {breakdown.scores.map(({ label, score }) => {
+              const Icon = CATEGORY_ICONS[label];
+              return (
+                <View key={label} style={styles.score}>
+                  <Text style={styles.scoreLabel}>{label}</Text>
+                  <Text style={styles.scoreValue}>{score.toFixed(1)}</Text>
+                  <View style={styles.scoreIcon}>
+                    <Icon size={28} />
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <FlatList
+            data={reviews}
+            keyExtractor={(r) => r.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={REVIEW_CARD + GAP}
+            decelerationRate="fast"
+            style={styles.bleed}
+            contentContainerStyle={styles.rail}
+            renderItem={({ item }) => <ReviewCard review={item} onShowMore={openReviews} style={{ width: REVIEW_CARD }} />}
+          />
+          <OutlineButton label={`Show all ${total} reviews`} onPress={openReviews} style={styles.sectionButton} />
+
+          <View style={styles.rule} />
+
+          <Text style={styles.sectionTitle}>Where you’ll be</Text>
+          <LocationMap listing={listing} />
+          <Text style={styles.placeName}>{place}</Text>
+          <Text style={styles.paragraph} numberOfLines={areaExpanded ? undefined : 2}>
+            {neighbourhoodFor(listing)}
+          </Text>
+          {!areaExpanded && (
+            <View style={styles.moreLink}>
+              <TextLink label="Show more" onPress={() => setAreaExpanded(true)} />
+            </View>
+          )}
+
+          <View style={styles.rule} />
+
+          <Text style={styles.sectionTitle}>Meet your host</Text>
+          <HostCard listing={listing} onMessage={messageHost} />
+
+          <View style={styles.rule} />
+
+          <Text style={styles.sectionTitle}>Things to know</Text>
+          <InfoRow
+            Icon={ClipboardListIcon}
+            title="House rules"
+            summary={`Check-in after ${rules.checkIn} · ${rules.maxGuests} guests maximum`}
+            onPress={() => openInfo('rules')}
+          />
+          <InfoRow Icon={ShieldCheckIcon} title="Safety & property" summary={SAFETY.slice(0, 2).join(' · ')} onPress={() => openInfo('safety')} />
+          <InfoRow Icon={CalendarMarkIcon} title="Cancellation policy" summary={cancellationSummary} onPress={() => openInfo('cancellation')} />
+        </View>
+      </Animated.ScrollView>
+
+      <View style={[styles.header, { height: insets.top + HEADER_BAR, paddingTop: insets.top }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.headerBar, barStyle]} />
+        <View style={styles.headerRow}>
+          <RoundButton label="Go back" onPress={() => router.back()} scrollY={scrollY} threshold={threshold}>
+            <AltArrowLeftIcon size={22} strokeWidth={2} />
           </RoundButton>
-          <View style={styles.roundButton}>
-            <HeartButton listingId={listing.id} size={22} variant="plain" />
+          <Animated.Text style={[styles.headerTitle, titleStyle]} numberOfLines={1}>
+            {listing.title}
+          </Animated.Text>
+          <View style={styles.headerRight}>
+            <RoundButton
+              label="Share"
+              scrollY={scrollY}
+              threshold={threshold}
+              onPress={() => Share.share({ message: `Check out "${listing.title}" – ${formatPrice(listing.price)} ${listing.priceNote}` })}>
+              <UploadIcon size={22} strokeWidth={2} />
+            </RoundButton>
+            <RoundButton scrollY={scrollY} threshold={threshold}>
+              <HeartButton listingId={listing.id} size={22} variant="plain" toastOffset={90} />
+            </RoundButton>
           </View>
         </View>
       </View>
@@ -227,14 +405,59 @@ function ListingDetails({ listing }: { listing: Listing }) {
   );
 }
 
-function RoundButton({ children, onPress, label }: { children: ReactNode; onPress: () => void; label: string }) {
+type RoundButtonProps = {
+  children: ReactNode;
+  scrollY: SharedValue<number>;
+  threshold: number;
+  /** Without it the child handles the press itself (the heart). */
+  onPress?: () => void;
+  label?: string;
+};
+
+/** Floating circle over the photo that melts into a plain icon once the header bar is in. */
+function RoundButton({ children, onPress, label, scrollY, threshold }: RoundButtonProps) {
   const styles = useStyles();
+  const circleStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [threshold - 80, threshold], [1, 0], Extrapolation.CLAMP),
+  }));
+  const circle = <Animated.View style={[StyleSheet.absoluteFill, styles.roundCircle, circleStyle]} />;
+
+  if (!onPress) {
+    return (
+      <View style={styles.roundButton}>
+        {circle}
+        {children}
+      </View>
+    );
+  }
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel={label}
       style={({ pressed }) => [styles.roundButton, pressed && { transform: [{ scale: 0.92 }] }]}>
+      {circle}
       {children}
+    </Pressable>
+  );
+}
+
+function InfoRow({ Icon, title, summary, onPress }: { Icon: SolarIcon; title: string; summary: string; onPress: () => void }) {
+  const styles = useStyles();
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.infoRow, pressed && { opacity: 0.6 }]}>
+      <Icon size={26} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.infoTitle}>{title}</Text>
+        <Text style={styles.infoSummary} numberOfLines={1}>
+          {summary}
+        </Text>
+      </View>
+      <AltArrowRightIcon size={20} color={colors.text} />
     </Pressable>
   );
 }
@@ -295,7 +518,7 @@ const useStyles = createStyles((c) => ({
   rule: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: c.border,
-    marginVertical: 24,
+    marginVertical: 28,
   },
   hostRow: {
     flexDirection: 'row',
@@ -336,13 +559,13 @@ const useStyles = createStyles((c) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featuresScroll: {
+  bleed: {
     marginTop: 20,
     marginHorizontal: -24,
   },
-  features: {
+  rail: {
     paddingHorizontal: 24,
-    gap: 12,
+    gap: GAP,
   },
   feature: {
     width: 128,
@@ -364,10 +587,33 @@ const useStyles = createStyles((c) => ({
     color: c.text,
     marginBottom: 12,
   },
+  sectionButton: {
+    marginTop: 24,
+  },
   paragraph: {
     fontSize: 16,
     lineHeight: 24,
     color: c.text,
+  },
+  room: {
+    width: 220,
+  },
+  roomPhoto: {
+    width: 220,
+    height: 150,
+    borderRadius: 12,
+    backgroundColor: c.surface,
+  },
+  roomName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: c.text,
+    marginTop: 10,
+  },
+  roomBeds: {
+    fontSize: 14,
+    color: c.textSecondary,
+    marginTop: 2,
   },
   amenity: {
     flexDirection: 'row',
@@ -375,24 +621,102 @@ const useStyles = createStyles((c) => ({
     gap: 16,
     paddingVertical: 10,
   },
-  topButtons: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  scores: {
+    paddingHorizontal: 24,
   },
-  topRight: {
+  score: {
+    width: 110,
+    paddingRight: 16,
+    marginRight: 16,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: c.border,
+    gap: 6,
+  },
+  scoreLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.text,
+    marginBottom: 2,
+  },
+  scoreValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: c.text,
+    fontVariant: ['tabular-nums'],
+  },
+  scoreIcon: {
+    marginTop: 16,
+  },
+  placeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: c.text,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  moreLink: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+  },
+  infoRow: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 14,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: c.text,
+  },
+  infoSummary: {
+    fontSize: 14,
+    color: c.textSecondary,
+    marginTop: 2,
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    // Transparent over the photo, so swipes and taps between the buttons reach the pager.
+    pointerEvents: 'box-none',
+  },
+  headerBar: {
+    backgroundColor: c.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: c.border,
+  },
+  headerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    pointerEvents: 'box-none',
+  },
+  headerTitle: {
+    position: 'absolute',
+    left: 116,
+    right: 116,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '600',
+    color: c.text,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    gap: 8,
   },
   roundButton: {
     width: 42,
     height: 42,
-    borderRadius: 21,
-    backgroundColor: c.overlayButton,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  roundCircle: {
+    borderRadius: 21,
+    backgroundColor: c.overlayButton,
     boxShadow: '0 1px 6px rgba(0,0,0,0.15)',
   },
   price: {

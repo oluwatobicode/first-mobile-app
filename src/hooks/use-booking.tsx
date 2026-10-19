@@ -28,8 +28,13 @@ export type Draft = {
 export type Trip = {
   id: string;
   listingId: string;
-  status: 'pending' | 'confirmed';
+  status: 'pending' | 'confirmed' | 'cancelled';
   createdAt: number;
+  /** Set when the guest cancels; how much of `paid` comes back. */
+  refund?: number;
+  cancelledAt?: number;
+  /** Demo shortcut: pretend the stay already happened so it can be reviewed. */
+  completed?: boolean;
   checkIn: string;
   checkOut: string | null;
   total: number;
@@ -65,6 +70,8 @@ type BookingContextValue = {
 
   trips: Trip[];
   addTrip: (trip: Omit<Trip, 'id' | 'status' | 'createdAt'>) => Trip;
+  cancelTrip: (tripId: string, refund: number) => void;
+  completeTrip: (tripId: string) => void;
 
   remindersOn: boolean;
   setRemindersOn: (on: boolean) => void;
@@ -131,6 +138,9 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       setTrips((current) => [saved, ...current]);
       return saved;
     },
+    cancelTrip: (tripId, refund) =>
+      setTrips((current) => current.map((t) => (t.id === tripId ? { ...t, status: 'cancelled', refund, cancelledAt: Date.now() } : t))),
+    completeTrip: (tripId) => setTrips((current) => current.map((t) => (t.id === tripId ? { ...t, completed: true } : t))),
 
     remindersOn,
     setRemindersOn,

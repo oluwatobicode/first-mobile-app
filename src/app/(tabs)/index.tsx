@@ -1,13 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Platform, Pressable, RefreshControl, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Platform, Pressable, RefreshControl, ScrollView, Switch, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Extrapolation,
   FadeIn,
   FadeInDown,
   FadeOut,
   interpolate,
+  useAnimatedRef,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
@@ -20,17 +21,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapIcon } from '@solar-icons/react-native/linear/map';
 import { TuningIcon } from '@solar-icons/react-native/linear/tuning';
 
-import { CategoryTabs } from '@/components/category-tabs';
+import { CATEGORY_STRIP_HEIGHT, CategoryStrip } from '@/components/explore/category-strip';
+import { ExploreCard } from '@/components/explore/explore-card';
+import { ExploreTabs, TABS_COLLAPSED_HEIGHT, TABS_EXPANDED_HEIGHT } from '@/components/explore/explore-tabs';
+import { Inspiration } from '@/components/explore/inspiration';
+import { useTripWhen } from '@/components/explore/trip-when';
 import { useTabBarSpace } from '@/components/glass-tab-bar';
 import { AltArrowRightIcon, HomeSmileBoldIcon, MagnifierIcon, TagIcon } from '@/components/icons';
-import { ListingCard } from '@/components/listing-card';
 import { ListingCardSkeleton } from '@/components/skeleton';
 import { TextLink } from '@/components/ui';
-import type { Category, Listing } from '@/data/listings';
+import { CATEGORY_TAGS, tagsFor, type CategoryTag } from '@/data/details';
+import { getListing, type Category, type Listing } from '@/data/listings';
 import { useFilters } from '@/hooks/use-filters';
+import { useSettings } from '@/hooks/use-settings';
 import { createStyles, useTheme } from '@/hooks/use-theme';
+import { useWishlist } from '@/hooks/use-wishlist';
 
 const PULL_DISTANCE = 80;
+
+// Header geometry. Everything is a fixed height so the collapse can run purely on the UI thread.
+const PILL_EXPANDED = 58;
+const PILL_COLLAPSED = 48;
+const COLLAPSE_DISTANCE = PILL_EXPANDED - PILL_COLLAPSED + (TABS_EXPANDED_HEIGHT - TABS_COLLAPSED_HEIGHT);
+const RECENT_CARD = 132;
 
 /** Stable pseudo-random order for a given seed, so "refresh" reshuffles the stays. */
 function shuffled(listings: Listing[], seed: number) {
@@ -55,13 +68,19 @@ export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
   const { width } = useWindowDimensions();
-  const { filters, apply, activeCount, clearFilters } = useFilters();
+  const { filters, setFilters, apply, activeCount, clearFilters } = useFilters();
+  const { recentlyViewed } = useWishlist();
+  const { displayTotalPrice, setDisplayTotalPrice } = useSettings();
+  const tripWhen = useTripWhen();
   const [category, setCategory] = useState<Category>('homes');
+  const [tag, setTag] = useState<CategoryTag | null>(null);
   const [showFeesToast, setShowFeesToast] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [seed, setSeed] = useState(0);
 
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollY = useSharedValue(0);
+  const collapse = useSharedValue(0);
   const bounce = useSharedValue(0);
 
   useEffect(() => {
@@ -69,12 +88,36 @@ export default function ExploreScreen() {
     return () => clearTimeout(timer);
   }, []);
 
+  const isHomes = category === 'homes';
+  const activeTag = isHomes ? tag : null;
+  const headerHeight = insets.top + 8 + PILL_EXPANDED + TABS_EXPANDED_HEIGHT + (isHomes ? CATEGORY_STRIP_HEIGHT : 0);
   const cardWidth = Math.min(width * 0.425, 260);
-  const results = shuffled(apply(category), seed);
+  const inCategory = apply(category);
+  const tagged = activeTag ? inCategory.filter((l) => tagsFor(l).includes(activeTag)) : inCategory;
+  const results = shuffled(tagged, seed);
   const sections = groupBySection(results);
-  const searchSummary = [filters.where, filters.guests ? `${filters.guests} guest${filters.guests > 1 ? 's' : ''}` : null]
+  const recent = isHomes ? recentlyViewed.map(getListing).filter((l): l is Listing => Boolean(l)) : [];
+  const tagLabel = CATEGORY_TAGS.find((t) => t.key === activeTag)?.label;
+  const searchSummary = [
+    filters.where,
+    tripWhen,
+    filters.guests ? `${filters.guests} guest${filters.guests > 1 ? 's' : ''}` : null,
+  ]
     .filter(Boolean)
     .join(' · ');
+
+  const scrollToTop = () => scrollRef.current?.scrollTo({ y: 0, animated: true });
+
+  const onPickInspiration = (where: string) => {
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    setFilters({ where });
+    scrollToTop();
+  };
+
+  const onToggleTotal = (on: boolean) => {
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    setDisplayTotalPrice(on);
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -89,7 +132,20 @@ export default function ExploreScreen() {
 
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.set(e.contentOffset.y);
+    collapse.set(interpolate(e.contentOffset.y, [0, COLLAPSE_DISTANCE], [0, 1], Extrapolation.CLAMP));
   });
+
+  // The big search pill shrinks into a compact one as you scroll.
+  const pillStyle = useAnimatedStyle(() => ({
+    height: interpolate(collapse.value, [0, 1], [PILL_EXPANDED, PILL_COLLAPSED]),
+    paddingHorizontal: interpolate(collapse.value, [0, 1], [20, 14]),
+  }));
+  const pillTextStyle = useAnimatedStyle(() => ({
+    fontSize: interpolate(collapse.value, [0, 1], [16, 14]),
+  }));
+  const pillIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(collapse.value, [0, 1], [1, 0.85]) }],
+  }));
 
   // The house grows in as you pull down, and bounces while refreshing.
   const houseStyle = useAnimatedStyle(() => {
@@ -110,14 +166,18 @@ export default function ExploreScreen() {
         <View style={styles.searchRow}>
           <Pressable
             onPress={() => router.push('/search')}
-            style={({ pressed }) => [styles.searchPill, pressed && { transform: [{ scale: 0.98 }] }]}
+            style={({ pressed }) => [{ flex: 1 }, pressed && { transform: [{ scale: 0.98 }] }]}
             accessibilityRole="search">
-            <MagnifierIcon size={20} strokeWidth={2} />
-            <View style={{ flexShrink: 1 }}>
-              <Text style={styles.searchText} numberOfLines={1}>
-                {searchSummary || 'Start your search'}
-              </Text>
-            </View>
+            <Animated.View style={[styles.searchPill, pillStyle]}>
+              <Animated.View style={pillIconStyle}>
+                <MagnifierIcon size={20} strokeWidth={2} />
+              </Animated.View>
+              <View style={{ flexShrink: 1 }}>
+                <Animated.Text style={[styles.searchText, pillTextStyle]} numberOfLines={1}>
+                  {searchSummary || 'Start your search'}
+                </Animated.Text>
+              </View>
+            </Animated.View>
           </Pressable>
           <Pressable
             onPress={() => router.push('/filters')}
@@ -133,20 +193,31 @@ export default function ExploreScreen() {
           </Pressable>
         </View>
 
-        <CategoryTabs value={category} onChange={setCategory} />
+        <ExploreTabs value={category} onChange={setCategory} progress={collapse} />
+        {isHomes && <CategoryStrip value={tag} onChange={setTag} />}
       </View>
 
       <View style={{ flex: 1 }}>
-        <Animated.View style={[styles.house, houseStyle]} pointerEvents="none">
+        <Animated.View style={[styles.house, { top: headerHeight + 14 }, houseStyle]} pointerEvents="none">
           <HomeSmileBoldIcon size={36} color={colors.primary} />
         </Animated.View>
 
         <Animated.ScrollView
+          ref={scrollRef}
           onScroll={onScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={{ paddingTop: 24, paddingBottom: tabBarSpace + 70 }}
+          contentContainerStyle={{ paddingTop: headerHeight + 24, paddingBottom: tabBarSpace + 70 }}
+          scrollIndicatorInsets={{ top: headerHeight }}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="transparent" colors={[colors.primary]} />}>
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="transparent"
+              colors={[colors.primary]}
+              progressViewOffset={headerHeight}
+            />
+          }>
           {activeCount > 0 && (
             <Animated.View entering={FadeIn} style={styles.resultsBar}>
               <Text style={styles.resultsText}>
@@ -170,6 +241,36 @@ export default function ExploreScreen() {
             </Pressable>
           )}
 
+          {isHomes && (
+            <View style={styles.totalCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.totalTitle}>Display total price</Text>
+                <Text style={styles.totalBody}>Includes all fees, before taxes</Text>
+              </View>
+              <Switch
+                value={displayTotalPrice}
+                onValueChange={onToggleTotal}
+                trackColor={{ false: colors.border, true: colors.text }}
+                thumbColor={colors.white}
+                ios_backgroundColor={colors.border}
+                accessibilityLabel="Display total price"
+              />
+            </View>
+          )}
+
+          {recent.length > 0 && !refreshing && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recently viewed</Text>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recentRow}>
+                {recent.map((listing) => (
+                  <ExploreCard key={listing.id} listing={listing} width={RECENT_CARD} showTotal={displayTotalPrice} compact />
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {refreshing ? (
             [0, 1].map((row) => (
               <View key={row} style={styles.section}>
@@ -180,6 +281,13 @@ export default function ExploreScreen() {
                 </View>
               </View>
             ))
+          ) : results.length === 0 && activeTag && inCategory.length > 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>{CATEGORY_TAGS.find((t) => t.key === activeTag)?.emoji}</Text>
+              <Text style={styles.emptyTitle}>No {tagLabel?.toLowerCase()} here yet</Text>
+              <Text style={styles.emptyBody}>Try another category, or see every home.</Text>
+              <TextLink label="Show all homes" onPress={() => setTag(null)} />
+            </View>
           ) : results.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🔍</Text>
@@ -188,7 +296,7 @@ export default function ExploreScreen() {
               <TextLink label="Clear all filters" onPress={clearFilters} />
             </View>
           ) : (
-            <Animated.View key={`${category}-${seed}`} entering={FadeInDown.duration(350)}>
+            <Animated.View key={`${category}-${activeTag ?? 'all'}-${seed}`} entering={FadeInDown.duration(350)}>
               {sections.map((section) => (
                 <View key={section.title} style={styles.section}>
                   <Pressable style={styles.sectionHeader}>
@@ -199,7 +307,7 @@ export default function ExploreScreen() {
                     horizontal
                     data={section.data}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <ListingCard listing={item} width={cardWidth} />}
+                    renderItem={({ item }) => <ExploreCard listing={item} width={cardWidth} showTotal={displayTotalPrice} />}
                     contentContainerStyle={styles.row}
                     showsHorizontalScrollIndicator={false}
                     snapToInterval={cardWidth + 14}
@@ -209,6 +317,8 @@ export default function ExploreScreen() {
               ))}
             </Animated.View>
           )}
+
+          {!refreshing && <Inspiration onPick={onPickInspiration} />}
         </Animated.ScrollView>
       </View>
 
@@ -241,10 +351,14 @@ const useStyles = createStyles((c) => ({
     backgroundColor: c.background,
   },
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     backgroundColor: c.header,
     paddingHorizontal: 24,
     boxShadow: `0 2px 6px ${c.shadow}`,
-    zIndex: 1,
+    zIndex: 2,
   },
   searchRow: {
     flexDirection: 'row',
@@ -252,13 +366,10 @@ const useStyles = createStyles((c) => ({
     gap: 10,
   },
   searchPill: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    height: 58,
-    paddingHorizontal: 20,
     borderRadius: 999,
     backgroundColor: c.elevated,
     boxShadow: `0 3px 12px ${c.shadow}`,
@@ -299,7 +410,6 @@ const useStyles = createStyles((c) => ({
   },
   house: {
     position: 'absolute',
-    top: 14,
     alignSelf: 'center',
     zIndex: 1,
   },
@@ -358,6 +468,34 @@ const useStyles = createStyles((c) => ({
   row: {
     paddingHorizontal: 24,
     gap: 14,
+  },
+  recentRow: {
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  totalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 24,
+    marginBottom: 28,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.elevated,
+  },
+  totalTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: c.text,
+  },
+  totalBody: {
+    marginTop: 2,
+    fontSize: 13,
+    color: c.textSecondary,
   },
   empty: {
     alignItems: 'center',

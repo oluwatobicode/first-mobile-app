@@ -48,7 +48,7 @@ export default function ThingsToDoScreen() {
                   <View style={[styles.photo, { height: cardWidth * 1.33 }]}>
                     <Image source={item.images[0]} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
                     <View style={styles.heart}>
-                      <HeartButton listingId={item.id} />
+                      <HeartButton listingId={item.id} toastOffset={90} />
                     </View>
                   </View>
                   <View style={styles.rating}>

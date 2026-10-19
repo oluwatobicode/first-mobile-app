@@ -1,16 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 
+import { MonthCalendar, WeekdayHeader } from '@/components/calendar/month-calendar';
 import { CloseIcon, StarBoldIcon } from '@/components/icons';
 import { Button, FooterBar, TextLink } from '@/components/ui';
 import { formatPrice, getListing } from '@/data/listings';
 import { isNightly, useBooking } from '@/hooks/use-booking';
-import { addDays, formatDay, monthGrid, monthTitle, nightsBetween, todayKey, upcomingMonths, isBooked } from '@/lib/dates';
+import { addDays, formatDay, nightsBetween, todayKey, isBooked } from '@/lib/dates';
 import { createStyles, useTheme } from '@/hooks/use-theme';
 
-const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTHS = upcomingMonths(12);
 const PAD = 16;
 
 export default function DatesScreen() {
@@ -30,7 +29,6 @@ export default function DatesScreen() {
 
   const nightly = isNightly(listing);
   const today = todayKey();
-  const cell = Math.floor((width - PAD * 2) / 7);
   const picking: 'start' | 'end' = nightly && start && !end ? 'end' : 'start';
 
   // While choosing checkout, you can't stay past the next night that's already booked.
@@ -45,18 +43,6 @@ export default function DatesScreen() {
     if (key < today) return true;
     if (picking === 'end' && start && key > start) return key > checkoutLimit!;
     return isBooked(listing.id, key);
-  };
-
-  const onDayPress = (key: string) => {
-    if (!nightly) {
-      setStart(key);
-      setEnd(null);
-    } else if (picking === 'start' || (start && key <= start)) {
-      setStart(key);
-      setEnd(null);
-    } else {
-      setEnd(key);
-    }
   };
 
   const complete = nightly ? Boolean(start && end) : Boolean(start);
@@ -104,67 +90,20 @@ export default function DatesScreen() {
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
 
-      <View style={[styles.weekdays, { paddingHorizontal: PAD }]}>
-        {WEEKDAY_LETTERS.map((letter, i) => (
-          <Text key={i} style={[styles.weekday, { width: cell }]}>
-            {letter}
-          </Text>
-        ))}
-      </View>
+      <WeekdayHeader width={width - PAD * 2} style={{ paddingHorizontal: PAD }} />
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: PAD, paddingBottom: 24 }}>
-        {MONTHS.map(({ year, month }) => (
-          <View key={`${year}-${month}`} style={styles.month}>
-            <Text style={styles.monthTitle}>{monthTitle(year, month)}</Text>
-            <View style={styles.grid}>
-              {monthGrid(year, month).map((key, index) => {
-                if (!key) return <View key={`pad-${index}`} style={{ width: cell, height: cell }} />;
-
-                const unavailable = isUnavailable(key);
-                const isStart = key === start;
-                const isEnd = key === end;
-                const inRange = Boolean(start && end && key > start && key < end);
-                const showBand = Boolean(start && end && start !== end && (inRange || isStart || isEnd));
-
-                return (
-                  <Pressable
-                    key={key}
-                    disabled={unavailable && !isStart}
-                    onPress={() => onDayPress(key)}
-                    style={{ width: cell, height: cell, alignItems: 'center', justifyContent: 'center' }}
-                    accessibilityLabel={formatDay(key)}
-                    accessibilityState={{ disabled: unavailable, selected: isStart || isEnd }}>
-                    {showBand && (
-                      <View
-                        style={[
-                          styles.band,
-                          { height: cell - 6 },
-                          isStart && { left: '50%' },
-                          isEnd && { right: '50%' },
-                        ]}
-                      />
-                    )}
-                    <View
-                      style={[
-                        styles.day,
-                        { width: cell - 6, height: cell - 6, borderRadius: cell },
-                        (isStart || isEnd) && styles.daySelected,
-                      ]}>
-                      <Text
-                        style={[
-                          styles.dayText,
-                          unavailable && styles.dayUnavailable,
-                          (isStart || isEnd) && styles.dayTextSelected,
-                        ]}>
-                        {Number(key.slice(8))}
-                      </Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
+        <MonthCalendar
+          start={start}
+          end={end}
+          range={nightly}
+          width={width - PAD * 2}
+          isDisabled={isUnavailable}
+          onChange={(nextStart, nextEnd) => {
+            setStart(nextStart);
+            setEnd(nextEnd);
+          }}
+        />
       </ScrollView>
 
       <FooterBar>
@@ -216,58 +155,6 @@ const useStyles = createStyles((c) => ({
   subtitle: {
     fontSize: 15,
     color: c.text,
-  },
-  weekdays: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: c.border,
-  },
-  weekday: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: c.textSecondary,
-  },
-  month: {
-    paddingTop: 24,
-  },
-  monthTitle: {
-    fontSize: 19,
-    fontWeight: '600',
-    color: c.text,
-    paddingHorizontal: 8,
-    marginBottom: 12,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  band: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    backgroundColor: c.surface,
-  },
-  day: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  daySelected: {
-    backgroundColor: c.inverse,
-  },
-  dayText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: c.text,
-    fontVariant: ['tabular-nums'],
-  },
-  dayUnavailable: {
-    color: c.placeholder,
-    fontWeight: '400',
-    textDecorationLine: 'line-through',
-  },
-  dayTextSelected: {
-    color: c.onInverse,
   },
   footerPrice: {
     fontSize: 16,

@@ -3,6 +3,7 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useTabBarSpace } from '@/components/glass-tab-bar';
 import { HeartButton } from '@/components/heart-button';
 import { Skeleton } from '@/components/skeleton';
 import { cardPriceLabel, type Listing } from '@/data/listings';
@@ -16,6 +17,7 @@ type Props = {
 export function ListingCard({ listing, width }: Props) {
   const styles = useStyles();
   const [loaded, setLoaded] = useState(false);
+  const tabBarSpace = useTabBarSpace();
   return (
     <Link href={{ pathname: '/listing/[id]', params: { id: listing.id } }} asChild>
       <Pressable style={({ pressed }) => [{ width }, pressed && styles.pressed]}>
@@ -34,7 +36,7 @@ export function ListingCard({ listing, width }: Props) {
             </View>
           )}
           <View style={styles.heart}>
-            <HeartButton listingId={listing.id} />
+            <HeartButton listingId={listing.id} toastOffset={tabBarSpace} />
           </View>
         </View>
 

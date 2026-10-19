@@ -9,6 +9,9 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { BookingProvider } from '@/hooks/use-booking';
 import { FiltersProvider } from '@/hooks/use-filters';
 import { MessagesProvider } from '@/hooks/use-messages';
+import { ReviewsProvider } from '@/hooks/use-reviews';
+import { SettingsProvider } from '@/hooks/use-settings';
+import { ToastProvider } from '@/hooks/use-toast';
 import { useNotificationObserver } from '@/hooks/use-notification-observer';
 import { AppThemeProvider, useTheme } from '@/hooks/use-theme';
 import { WishlistProvider } from '@/hooks/use-wishlist';
@@ -29,9 +32,15 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AppThemeProvider>
-        <FiltersProvider>
-          <ThemedApp />
-        </FiltersProvider>
+        <SettingsProvider>
+          <FiltersProvider>
+            <ReviewsProvider>
+              <ToastProvider>
+                <ThemedApp />
+              </ToastProvider>
+            </ReviewsProvider>
+          </FiltersProvider>
+        </SettingsProvider>
       </AppThemeProvider>
     </GestureHandlerRootView>
   );
@@ -77,6 +86,31 @@ function ThemedApp() {
               />
               <Stack.Screen name="surprise" options={{ presentation: 'modal' }} />
               <Stack.Screen name="chat/[tripId]" />
+
+              {/* Listing details */}
+              <Stack.Screen name="reviews" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="amenities" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="photo-tour" />
+              <Stack.Screen name="listing-info" options={sheet(0.75)} />
+
+              {/* Wishlists */}
+              <Stack.Screen name="save-to-wishlist" options={sheet(0.7)} />
+              <Stack.Screen name="wishlist/[listId]" />
+
+              {/* Trips */}
+              <Stack.Screen name="trip/[tripId]" />
+              <Stack.Screen name="cancel-trip" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="receipt" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="review" options={{ presentation: 'fullScreenModal' }} />
+
+              {/* Profile, account and hosting */}
+              <Stack.Screen name="profile-details" />
+              <Stack.Screen name="account/index" />
+              <Stack.Screen name="account/personal-info" />
+              <Stack.Screen name="account/login-security" />
+              <Stack.Screen name="account/payments" />
+              <Stack.Screen name="account/notifications" />
+              <Stack.Screen name="(host)" options={{ animation: 'fade' }} />
             </Stack>
             <SplashOverlay />
           </MessagesProvider>

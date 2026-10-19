@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { EMPTY_WHEN, WhenPicker, whenSummary, type WhenValue } from '@/components/calendar/when-picker';
 import { CategoryTabs } from '@/components/category-tabs';
+import { getTripWhen, setTripWhen } from '@/components/explore/trip-when';
 import {
   AddIcon,
   BuildingsIcon,
@@ -16,13 +18,13 @@ import {
   MinusIcon,
   WaterIcon,
 } from '@/components/icons';
+import { Button, TextLink } from '@/components/ui';
 import { DESTINATIONS, type Category } from '@/data/listings';
 import { useFilters } from '@/hooks/use-filters';
 import { createStyles, useTheme } from '@/hooks/use-theme';
 
 type Step = 'where' | 'when' | 'who';
 
-const DATE_OPTIONS = ['This weekend', 'Next week', 'Next month', 'I’m flexible'];
 const GUEST_TYPES = [
   { key: 'adults', label: 'Adults', hint: 'Ages 13 or above' },
   { key: 'children', label: 'Children', hint: 'Ages 2 – 12' },
@@ -37,16 +39,23 @@ const DESTINATION_ICONS = { nearby: MapPointIcon, beach: WaterIcon, city: Buildi
 
 const layout = LinearTransition.springify().damping(18).stiffness(160);
 
+// ScrollView padding (14) + open card padding (26), on both sides.
+const CARD_INSET = (14 + 26) * 2;
+
 export default function SearchScreen() {
   const styles = useStyles();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const [category, setCategory] = useState<Category>('homes');
   const [step, setStep] = useState<Step>('where');
   const [query, setQuery] = useState('');
   const { filters, setFilters } = useFilters();
   const [where, setWhere] = useState<string | null>(filters.where);
-  const [when, setWhen] = useState<string | null>(null);
+  const [when, setWhen] = useState<WhenValue>(() => getTripWhen()?.value ?? EMPTY_WHEN);
+  // Months / Flexible always describe a trip; Dates only once a day is picked.
+  const [whenTouched, setWhenTouched] = useState(() => getTripWhen() !== null);
+  const whenLabel = whenTouched ? whenSummary(when) : null;
   const [guests, setGuests] = useState(NO_GUESTS);
 
   const guestCount = guests.adults + guests.children;
@@ -60,7 +69,8 @@ export default function SearchScreen() {
   const clearAll = () => {
     setQuery('');
     setWhere(null);
-    setWhen(null);
+    setWhen(EMPTY_WHEN);
+    setWhenTouched(false);
     setGuests(NO_GUESTS);
     setStep('where');
   };
@@ -127,25 +137,28 @@ export default function SearchScreen() {
         {step === 'when' ? (
           <Animated.View layout={layout} entering={FadeIn} style={[styles.card, styles.cardOpen]}>
             <Text style={styles.bigTitle}>When’s your trip?</Text>
-            <View style={styles.chips}>
-              {DATE_OPTIONS.map((option) => {
-                const selected = option === when;
-                return (
-                  <Pressable
-                    key={option}
-                    onPress={() => {
-                      setWhen(option);
-                      setStep('who');
-                    }}
-                    style={[styles.chip, selected && styles.chipSelected]}>
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{option}</Text>
-                  </Pressable>
-                );
-              })}
+            <WhenPicker
+              value={when}
+              width={width - CARD_INSET}
+              onChange={(next) => {
+                setWhen(next);
+                setWhenTouched(true);
+              }}
+            />
+            <View style={styles.whenFooter}>
+              <TextLink
+                label="Reset"
+                disabled={!whenTouched}
+                onPress={() => {
+                  setWhen(EMPTY_WHEN);
+                  setWhenTouched(false);
+                }}
+              />
+              <Button label={whenLabel ? 'Next' : 'Skip'} tone="dark" onPress={() => setStep('who')} style={styles.whenNext} />
             </View>
           </Animated.View>
         ) : (
-          <CollapsedRow label="When" value={when ?? 'Add dates'} onPress={() => setStep('when')} />
+          <CollapsedRow label="When" value={whenLabel ?? 'Add dates'} onPress={() => setStep('when')} />
         )}
 
         {step === 'who' ? (
@@ -177,10 +190,12 @@ export default function SearchScreen() {
           onPress={() => {
             // "Nearby" isn't a place we can filter by, so it just shows everything.
             setFilters({ where: where && where !== 'Nearby' ? where : null, guests: guestCount });
+            // Dates aren't part of the global filters; they ride along to the Explore search pill.
+            setTripWhen(whenLabel ? { label: whenLabel, value: when } : null);
             router.back();
           }}
           style={({ pressed }) => [styles.searchButton, pressed && { transform: [{ scale: 0.97 }] }]}>
-          <MagnifierIcon size={22} color="#FFFFFF" strokeWidth={2.2} />
+          <MagnifierIcon size={22} color={colors.white} strokeWidth={2.2} />
           <Text style={styles.searchButtonText}>Search</Text>
         </Pressable>
       </View>
@@ -333,29 +348,14 @@ const useStyles = createStyles((c) => ({
     fontSize: 14,
     color: c.textSecondary,
   },
-  chips: {
+  whenFooter: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 22,
   },
-  chip: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  chipSelected: {
-    borderColor: c.text,
-    backgroundColor: c.surface,
-  },
-  chipText: {
-    fontSize: 15,
-    color: c.text,
-    fontWeight: '500',
-  },
-  chipTextSelected: {
-    fontWeight: '700',
+  whenNext: {
+    minWidth: 110,
   },
   guestRow: {
     flexDirection: 'row',

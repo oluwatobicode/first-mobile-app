@@ -11,7 +11,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { HeartBoldIcon, HeartIcon } from '@/components/icons';
+import { openSaveSheet, useSavedToast } from '@/components/wishlist/helpers';
+import { getListing } from '@/data/listings';
 import { useTheme } from '@/hooks/use-theme';
+import { useToast } from '@/hooks/use-toast';
 import { useWishlist } from '@/hooks/use-wishlist';
 
 type Props = {
@@ -19,13 +22,17 @@ type Props = {
   size?: number;
   /** `overlay` sits on top of a photo, `plain` sits on a white surface. */
   variant?: 'overlay' | 'plain';
+  /** Lift the save/remove toast, e.g. `useTabBarSpace()` on tab screens or ~90 above a footer. */
+  toastOffset?: number;
 };
 
 const BURST = 6;
 
-export function HeartButton({ listingId, size = 26, variant = 'overlay' }: Props) {
+export function HeartButton({ listingId, size = 26, variant = 'overlay', toastOffset = 0 }: Props) {
   const { colors } = useTheme();
-  const { isSaved, toggle } = useWishlist();
+  const { isSaved, listFor, lastList, saveTo, remove } = useWishlist();
+  const toast = useToast();
+  const showSaved = useSavedToast();
   const saved = isSaved(listingId);
   const scale = useSharedValue(1);
   // Bumped on every save so the burst replays.
@@ -35,7 +42,7 @@ export function HeartButton({ listingId, size = 26, variant = 'overlay' }: Props
     transform: [{ scale: scale.value }],
   }));
 
-  const onPress = () => {
+  const pop = () => {
     scale.set(
       withSequence(
         withTiming(0.7, { duration: 90 }),
@@ -43,11 +50,41 @@ export function HeartButton({ listingId, size = 26, variant = 'overlay' }: Props
         withSpring(1, { damping: 10 })
       )
     );
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(saved ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
+  };
+
+  const haptic = (style: Haptics.ImpactFeedbackStyle) => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(style);
+  };
+
+  const onPress = () => {
+    if (saved) {
+      const list = listFor(listingId);
+      pop();
+      haptic(Haptics.ImpactFeedbackStyle.Light);
+      remove(listingId);
+      if (list) {
+        toast.show({
+          message: `Removed from ${list.name}`,
+          image: getListing(listingId)?.images[0],
+          offset: toastOffset,
+          action: { label: 'Undo', onPress: () => saveTo(listingId, list.id) },
+        });
+      }
+      return;
     }
-    if (!saved) setBurstKey((k) => k + 1);
-    toggle(listingId);
+
+    // First save ever: let them name a list in the sheet.
+    if (!lastList) {
+      haptic(Haptics.ImpactFeedbackStyle.Light);
+      openSaveSheet(listingId, toastOffset);
+      return;
+    }
+
+    pop();
+    haptic(Haptics.ImpactFeedbackStyle.Medium);
+    setBurstKey((k) => k + 1);
+    saveTo(listingId, lastList.id);
+    showSaved(listingId, lastList.name, toastOffset);
   };
 
   const fill = saved ? colors.primary : variant === 'overlay' ? 'rgba(0,0,0,0.45)' : 'transparent';

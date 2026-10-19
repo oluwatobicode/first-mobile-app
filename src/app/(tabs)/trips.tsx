@@ -4,8 +4,11 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { EmptyState, TabScreen } from '@/components/tab-screen';
-import { getListing, LISTINGS, placeOf, type Listing } from '@/data/listings';
+import { CancelledTripRow, PastTripRow, ReviewPromptCard } from '@/components/trips/trip-rows';
+import { statusLabel, withListings } from '@/components/trips/trip-utils';
+import { LISTINGS, placeOf, type Listing } from '@/data/listings';
 import { useBooking, type Trip } from '@/hooks/use-booking';
+import { useReviews } from '@/hooks/use-reviews';
 import { fromKey } from '@/lib/dates';
 import { createStyles } from '@/hooks/use-theme';
 
@@ -14,11 +17,10 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export default function TripsScreen() {
   const styles = useStyles();
   const { trips } = useBooking();
-  const upcoming = trips
-    .map((trip) => ({ trip, listing: getListing(trip.listingId) }))
-    .filter((t): t is { trip: Trip; listing: Listing } => Boolean(t.listing));
+  const { reviewForTrip } = useReviews();
+  const all = withListings(trips);
 
-  if (upcoming.length === 0) {
+  if (all.length === 0) {
     return (
       <TabScreen title="Trips">
         <EmptyState
@@ -31,19 +33,59 @@ export default function TripsScreen() {
     );
   }
 
-  const city = placeOf(upcoming[0].listing).city;
+  const upcoming = all.filter(({ trip }) => trip.status !== 'cancelled' && !trip.completed);
+  const past = all.filter(({ trip }) => trip.status !== 'cancelled' && trip.completed);
+  const cancelled = all.filter(({ trip }) => trip.status === 'cancelled');
+  const toReview = past.find(({ trip }) => !reviewForTrip(trip.id));
+
+  const city = placeOf((upcoming[0] ?? all[0]).listing).city;
   const nearby = LISTINGS.filter((l) => l.category !== 'homes');
 
   return (
     <TabScreen title="Trips">
-      <Text style={styles.heading}>Upcoming reservations</Text>
-      <View style={{ gap: 24 }}>
-        {upcoming.map(({ trip, listing }, index) => (
-          <Animated.View key={trip.id} entering={FadeInDown.delay(index * 80)}>
-            <ReservationCard trip={trip} listing={listing} />
-          </Animated.View>
-        ))}
-      </View>
+      {toReview && (
+        <Animated.View entering={FadeInDown}>
+          <ReviewPromptCard item={toReview} />
+        </Animated.View>
+      )}
+
+      {upcoming.length > 0 ? (
+        <>
+          <Text style={styles.heading}>Upcoming reservations</Text>
+          <View style={{ gap: 24 }}>
+            {upcoming.map(({ trip, listing }, index) => (
+              <Animated.View key={trip.id} entering={FadeInDown.delay(index * 80)}>
+                <ReservationCard trip={trip} listing={listing} />
+              </Animated.View>
+            ))}
+          </View>
+        </>
+      ) : (
+        <EmptyState
+          emoji="🧳"
+          heading="No upcoming trips"
+          body="Your next adventure is waiting. Find a place and book it in a few taps."
+          action={{ label: 'Start searching', onPress: () => router.push('/search') }}
+        />
+      )}
+
+      {past.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.heading}>Where you’ve been</Text>
+          {past.map((item) => (
+            <PastTripRow key={item.trip.id} item={item} review={reviewForTrip(item.trip.id)} />
+          ))}
+        </View>
+      )}
+
+      {cancelled.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.heading}>Cancelled</Text>
+          {cancelled.map((item) => (
+            <CancelledTripRow key={item.trip.id} item={item} />
+          ))}
+        </View>
+      )}
 
       <Text style={[styles.heading, { marginTop: 40 }]}>Explore things to do near {city}</Text>
       <FlatList
@@ -80,12 +122,12 @@ function ReservationCard({ trip, listing }: { trip: Trip; listing: Listing }) {
   const sameMonth = start.getMonth() === end.getMonth();
 
   return (
-    <Link href={{ pathname: '/listing/[id]', params: { id: listing.id } }} asChild>
+    <Link href={{ pathname: '/trip/[tripId]', params: { tripId: trip.id } }} asChild>
       <Pressable style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.99 }] }]}>
         <View>
           <Image source={listing.images[0]} style={styles.cardImage} contentFit="cover" transition={200} />
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{trip.status === 'confirmed' ? 'Confirmed' : 'Pending'}</Text>
+            <Text style={styles.badgeText}>{statusLabel(trip)}</Text>
           </View>
         </View>
         <View style={styles.cardBody}>
@@ -120,6 +162,9 @@ const useStyles = createStyles((c) => ({
     fontWeight: '600',
     color: c.text,
     marginBottom: 20,
+  },
+  section: {
+    marginTop: 40,
   },
   card: {
     borderRadius: 16,
